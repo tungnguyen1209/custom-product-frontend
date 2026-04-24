@@ -93,7 +93,8 @@ interface WMTemplate {
   elements: TemplateElement[];
 }
 
-/* Place a loaded fabric.Image using the same formula as the reference Layer class */
+/* ─── Helpers ─────────────────────────────────────────────────────────── */
+
 function placeImage(
   oImg: fabric.Image,
   centerX: number,
@@ -134,37 +135,124 @@ function loadFabricImage(url: string): Promise<fabric.Image | null> {
   });
 }
 
+/* ─── Fingerprint: tạo chuỗi hash nhẹ để so sánh element có thay đổi không ── */
+
+function getImageUrl(el: TemplateElement): string | undefined {
+  const cfg = el.config;
+  if (el.source === "callie") {
+    const callieImg = (cfg.images ?? []).find(
+      (img) => String(img.order) === String(cfg.imageId),
+    );
+    return callieImg?.value ?? cfg.imageUrl;
+  }
+  return cfg.staticPath || cfg.imageUrl;
+}
+
+function elementFingerprint(el: TemplateElement): string {
+  const cfg = el.config;
+  if (el.type === "text_box" || el.type === "text_box_circular") {
+    return `text|${cfg.textConfig?.text}|${cfg.textConfig?.fill}|${cfg.textConfig?.fontSize}|${cfg.textConfig?.font}|${cfg.textConfig?.multiline}|${cfg.centerX}|${cfg.centerY}|${cfg.sWidth}|${cfg.rotation}`;
+  }
+  const url = getImageUrl(el);
+  if (el.source === "callie") {
+    const ci = (cfg.images ?? []).find((img) => String(img.order) === String(cfg.imageId));
+    return `img|${url}|${ci?.scaleX}|${ci?.scaleY}|${ci?.left}|${ci?.top}|${cfg.centerX}|${cfg.centerY}|${cfg.sWidth}|${cfg.sHeight}|${cfg.rotation}`;
+  }
+  return `img|${url}|${cfg.centerX}|${cfg.centerY}|${cfg.sWidth}|${cfg.sHeight}|${cfg.rotation}`;
+}
+
+/* ─── Image cache ─────────────────────────────────────────────────────── */
+
+const imageCache = new Map<string, fabric.Image>();
+
+async function getCachedImage(url: string): Promise<fabric.Image | null> {
+  if (imageCache.has(url)) {
+    // Clone cached image để mỗi element có instance riêng
+    const cached = imageCache.get(url)!;
+    return new Promise((resolve) => {
+      cached.clone((cloned: fabric.Image) => resolve(cloned));
+    });
+  }
+  const img = await loadFabricImage(url);
+  if (img) {
+    imageCache.set(url, img);
+    // Return a clone, keep original in cache
+    return new Promise((resolve) => {
+      img.clone((cloned: fabric.Image) => resolve(cloned));
+    });
+  }
+  return null;
+}
+
+/* ─── Tracked element entry ───────────────────────────────────────────── */
+
+interface TrackedElement {
+  fingerprint: string;
+  fabricObj: fabric.Object;
+}
+
+/* ─── Component ───────────────────────────────────────────────────────── */
+
 export default function TemplatePreview() {
   const canvasElRef = useRef<HTMLCanvasElement>(null);
   const fabricRef = useRef<fabric.Canvas | null>(null);
   const renderCounterRef = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  // Map elementId → tracked fabric object + fingerprint
+  const objectMapRef = useRef<Map<string | number, TrackedElement>>(new Map());
+  // Lưu lại template trước để so sánh kích thước
+  const prevTemplateSizeRef = useRef<{ w: number; h: number } | null>(null);
 
   const renderTemplate = useCallback(async (template: WMTemplate) => {
     const canvas = fabricRef.current;
     if (!canvas) return;
 
     const myRender = ++renderCounterRef.current;
-    canvas.clear();
 
     const templateWidth = template.width || CANVAS_PX;
     const templateHeight = template.height || CANVAS_PX;
     const scale = CANVAS_PX / templateWidth;
 
-    canvas.setDimensions({ width: CANVAS_PX, height: templateHeight * scale });
+    // Chỉ resize canvas khi kích thước template thay đổi
+    const prevSize = prevTemplateSizeRef.current;
+    if (!prevSize || prevSize.w !== templateWidth || prevSize.h !== templateHeight) {
+      canvas.setDimensions({ width: CANVAS_PX, height: templateHeight * scale });
+      prevTemplateSizeRef.current = { w: templateWidth, h: templateHeight };
 
-    if (containerRef.current) {
-      const containerWidth = containerRef.current.clientWidth;
-      const displayScale = containerWidth / CANVAS_PX;
-      containerRef.current.style.height = `${templateHeight * scale * displayScale}px`;
+      if (containerRef.current) {
+        const containerWidth = containerRef.current.clientWidth;
+        const displayScale = containerWidth / CANVAS_PX;
+        containerRef.current.style.height = `${templateHeight * scale * displayScale}px`;
+      }
     }
 
     const elements = [...(template.elements ?? [])]
       .filter((el) => el.isShow || (el.opacity ?? 1) > 0)
       .sort((a, b) => a.order - b.order);
 
+    const objectMap = objectMapRef.current;
+    const newElementIds = new Set<string | number>();
+    const pendingAdds: { id: string | number; order: number; obj: fabric.Object }[] = [];
+
     for (const el of elements) {
       if (myRender !== renderCounterRef.current) return;
+
+      const elId = el.elementId;
+      newElementIds.add(elId);
+
+      const fp = elementFingerprint(el);
+      const existing = objectMap.get(elId);
+
+      // Element không thay đổi → giữ nguyên, skip
+      if (existing && existing.fingerprint === fp) {
+        continue;
+      }
+
+      // Element thay đổi → xóa cái cũ khỏi canvas
+      if (existing) {
+        canvas.remove(existing.fabricObj);
+        objectMap.delete(elId);
+      }
 
       const cfg = el.config;
 
@@ -196,7 +284,6 @@ export default function TemplatePreview() {
           })
         } else {
           obj = new fabric.IText(text, configs);
-
         }
 
         obj.setPositionByOrigin(
@@ -204,7 +291,9 @@ export default function TemplatePreview() {
           "center",
           "center",
         );
-        canvas.add(obj);
+
+        objectMap.set(elId, { fingerprint: fp, fabricObj: obj });
+        pendingAdds.push({ id: elId, order: el.order, obj });
         continue;
       }
 
@@ -225,14 +314,13 @@ export default function TemplatePreview() {
         const url = callieImage?.value ?? cfg.imageUrl;
         if (!url) continue;
 
-        const oImg = await loadFabricImage(url);
+        const oImg = await getCachedImage(url);
         if (myRender !== renderCounterRef.current) return;
         if (!oImg) continue;
 
         let sWidth: number, sHeight: number, centerX: number, centerY: number;
 
         if (callieImage?.scaleX !== undefined && callieImage?.scaleY !== undefined) {
-          /* Full callie formula: derive size+position from natural dims × callieImage data */
           const naturalW = oImg.width ?? 1;
           const naturalH = oImg.height ?? 1;
           sWidth = naturalW * callieImage.scaleX;
@@ -240,7 +328,6 @@ export default function TemplatePreview() {
           centerX = sWidth / 2 + (callieImage.left ?? 0);
           centerY = sHeight / 2 + (callieImage.top ?? 0);
         } else {
-          /* No callie position data (e.g. user-uploaded photo) — use WM pre-computed values */
           sWidth = cfg.sWidth ?? (oImg.width ?? 1);
           sHeight = cfg.sHeight ?? (oImg.height ?? 1);
           centerX = cfg.centerX ?? 0;
@@ -248,7 +335,8 @@ export default function TemplatePreview() {
         }
 
         placeImage(oImg, centerX, centerY, sWidth, sHeight, scale, cfg.rotation ?? 0);
-        canvas.add(oImg);
+        objectMap.set(elId, { fingerprint: fp, fabricObj: oImg });
+        pendingAdds.push({ id: elId, order: el.order, obj: oImg });
         continue;
       }
 
@@ -256,7 +344,7 @@ export default function TemplatePreview() {
       const url = cfg.staticPath || cfg.imageUrl;
       if (!url) continue;
 
-      const oImg = await loadFabricImage(url);
+      const oImg = await getCachedImage(url);
       if (myRender !== renderCounterRef.current) return;
       if (!oImg) continue;
 
@@ -269,7 +357,32 @@ export default function TemplatePreview() {
         scale,
         cfg.rotation ?? 0,
       );
-      canvas.add(oImg);
+      objectMap.set(elId, { fingerprint: fp, fabricObj: oImg });
+      pendingAdds.push({ id: elId, order: el.order, obj: oImg });
+    }
+
+    if (myRender !== renderCounterRef.current) return;
+
+    // Xóa các element không còn trong template mới
+    for (const [id, tracked] of objectMap) {
+      if (!newElementIds.has(id)) {
+        canvas.remove(tracked.fabricObj);
+        objectMap.delete(id);
+      }
+    }
+
+    // Thêm các element mới vào canvas
+    for (const item of pendingAdds) {
+      canvas.add(item.obj);
+    }
+
+    // Sắp xếp lại thứ tự trên canvas theo order
+    const sortedElements = elements.filter((el) => objectMap.has(el.elementId));
+    for (let i = 0; i < sortedElements.length; i++) {
+      const tracked = objectMap.get(sortedElements[i].elementId);
+      if (tracked) {
+        canvas.moveTo(tracked.fabricObj, i);
+      }
     }
 
     if (myRender === renderCounterRef.current) {
@@ -303,6 +416,8 @@ export default function TemplatePreview() {
       window.removeEventListener("wm-template-update", handleUpdate);
       canvas.dispose();
       fabricRef.current = null;
+      objectMapRef.current.clear();
+      prevTemplateSizeRef.current = null;
     };
   }, [renderTemplate]);
 
