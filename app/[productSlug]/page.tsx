@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 import Header from "@/components/Header";
 import TemplatePreviewLoader from "@/components/TemplatePreviewLoader";
@@ -9,7 +10,17 @@ import RelatedProducts from "@/components/RelatedProducts";
 import Footer from "@/components/Footer";
 import StarRating from "@/components/StarRating";
 
-export default function ProductPage() {
+interface Props {
+  params: Promise<{ productSlug: string }>;
+}
+
+export default async function ProductPage({ params }: Props) {
+  const { productSlug } = await params;
+
+  if (!productSlug.startsWith("s-p")) notFound();
+  const productId = productSlug.slice(3); // strip "s-p"
+  if (!productId) notFound();
+
   return (
     <>
       <Header />
@@ -28,9 +39,7 @@ export default function ProductPage() {
             ))}
             <span className="flex items-center gap-1 text-gray-600">
               <ChevronRight className="w-3 h-3" />
-              <span className="truncate max-w-[200px]">
-                Personalised Grad Cap Sash
-              </span>
+              <span className="truncate max-w-[200px]">Product {productId}</span>
             </span>
           </nav>
         </div>
@@ -45,7 +54,6 @@ export default function ProductPage() {
 
             {/* Right – Product info */}
             <div className="flex flex-col gap-6">
-              {/* Category tag */}
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs font-semibold text-[#2a9d8f] bg-[#e8f5f4] px-3 py-1 rounded-full">
                   🎓 Graduation Gifts
@@ -55,14 +63,10 @@ export default function ProductPage() {
                 </span>
               </div>
 
-              {/* Title */}
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 leading-snug">
-                Personalised Grad Cap Cartoon Character Graduation Sash with
-                Name and Year — Graduation Keepsake Gift for Class of 2026
-                Graduates
+                Product {productId}
               </h1>
 
-              {/* Rating */}
               <div className="flex items-center gap-3 flex-wrap">
                 <StarRating rating={4.8} count={9} size="md" />
                 <span className="text-sm text-[#2a9d8f] font-medium hover:underline cursor-pointer">
@@ -70,35 +74,23 @@ export default function ProductPage() {
                 </span>
               </div>
 
-              {/* Price */}
               <div className="flex items-baseline gap-3">
-                <span className="text-3xl font-bold text-gray-900">
-                  AU$37.00
-                </span>
-                <span className="text-sm text-gray-400 line-through">
-                  AU$52.00
-                </span>
+                <span className="text-3xl font-bold text-gray-900">AU$37.00</span>
+                <span className="text-sm text-gray-400 line-through">AU$52.00</span>
                 <span className="text-sm font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full">
                   29% OFF
                 </span>
               </div>
 
-              {/* Options & CTA */}
-              <CustomizationFormLoader productId="2497801633" />
+              <CustomizationFormLoader productId={productId} />
 
-              {/* Shipping */}
               <ShippingInfo />
-
-              {/* Description accordion */}
               <ProductDescription />
             </div>
           </div>
         </section>
 
-        {/* Reviews */}
         <ReviewsSection />
-
-        {/* Related products */}
         <RelatedProducts />
       </main>
 

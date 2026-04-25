@@ -8,6 +8,6 @@ const CustomizationForm = dynamic(
   { ssr: false, loading: () => <CustomizationFormSkeleton /> },
 );
 
-export default function CustomizationFormLoader() {
-  return <CustomizationForm />;
+export default function CustomizationFormLoader({ productId }: { productId: string }) {
+  return <CustomizationForm productId={productId} />;
 }

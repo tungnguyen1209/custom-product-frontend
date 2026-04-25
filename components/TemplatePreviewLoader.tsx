@@ -1,6 +1,8 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
+import ProductGallery from "./ProductGallery";
 
 const TemplatePreview = dynamic(
   () => import("./TemplatePreview"),
@@ -8,5 +10,20 @@ const TemplatePreview = dynamic(
 );
 
 export default function TemplatePreviewLoader() {
-  return <TemplatePreview />;
+  const [showCanvas, setShowCanvas] = useState(false);
+
+  useEffect(() => {
+    const handleUpdate = (e: Event) => {
+      const detail = (e as CustomEvent<{ isUserInteraction?: boolean }>).detail;
+      if (detail?.isUserInteraction) {
+        setShowCanvas(true);
+        window.removeEventListener("wm-template-update", handleUpdate);
+      }
+    };
+    window.addEventListener("wm-template-update", handleUpdate);
+    return () => window.removeEventListener("wm-template-update", handleUpdate);
+  }, []);
+
+  if (showCanvas) return <TemplatePreview />;
+  return <ProductGallery />;
 }

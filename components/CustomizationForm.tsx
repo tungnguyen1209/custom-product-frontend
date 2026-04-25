@@ -418,27 +418,35 @@ function CartStrip() {
 /* ─── Template broadcast helper ───────────────────────────────────────── */
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function broadcastTemplate(svc: any) {
+function broadcastTemplate(svc: any, isUserInteraction = false) {
   const tmpl = svc.getTemplate?.();
   if (!tmpl) return;
   (window as unknown as Record<string, unknown>).__wmTemplate = tmpl;
-  window.dispatchEvent(new CustomEvent("wm-template-update", { detail: { template: tmpl } }));
+  window.dispatchEvent(new CustomEvent("wm-template-update", { detail: { template: tmpl, isUserInteraction } }));
 }
 
 /* ─── Main component ───────────────────────────────────────────────────── */
 
-const PRODUCT_ID = "2110140173";
-const TEMPLATE_ID = "301478";
 const BASE_URL = "https://variant-service.printerval.com/product/customization";
 
-const BREADCRUMBS = [
-  { id: 20, name: "Home & Living", slug: "home-living", _lft: 884, _rgt: 1831, url: "/c/home-living" },
-  { id: 1016, name: "Kitchen & Dining", slug: "kitchen-dining", _lft: 1327, _rgt: 1602, url: "/c/home-living/kitchen-dining" },
-  { id: 35, name: "Mugs", slug: "mugs", _lft: 1378, _rgt: 1429, url: "/c/home-living/kitchen-dining/mugs" },
-  { id: 500, name: "Custom Mugs", slug: "custom-mugs", _lft: 1379, _rgt: 1380, url: "/c/home-living/kitchen-dining/mugs/custom-mugs" },
-];
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function deriveTemplateUuid(productResult: any): string {
+  const template = productResult?.template;
+  if (template?.uuid) return template.uuid;
 
-export default function CustomizationForm() {
+  const options = productResult?.options ?? [];
+  for (const option of options) {
+    for (const functionItem of (option.functionItems ?? [])) {
+      if (functionItem.type === "change-template") {
+        if (option.type === "swatch") return option.swatchValues?.[0]?.templateId ?? "";
+        if (option.type === "dropdown") return option.dropdownValues?.[0]?.templateId ?? "";
+      }
+    }
+  }
+  return "";
+}
+
+export default function CustomizationForm({ productId }: { productId: string }) {
   const [options, setOptions] = useState<IOption[]>([]);
   const [ready, setReady] = useState(false);
   const [fetchError, setFetchError] = useState(false);
@@ -452,21 +460,28 @@ export default function CustomizationForm() {
 
     async function init() {
       try {
-        const [optionsRes, templateRes] = await Promise.all([
-          fetch(`${BASE_URL}/${PRODUCT_ID}`),
-          fetch(`${BASE_URL}/template/${TEMPLATE_ID}`),
-        ]);
-        const [optionsJson, templateJson] = await Promise.all([
-          optionsRes.json(),
-          templateRes.json(),
-        ]);
+        const productRes = await fetch(`${BASE_URL}/${productId}`);
+        const productJson = await productRes.json();
 
         if (cancelled) return;
 
-        const rawOptions = optionsJson?.result?.options ?? [];
+        const productResult = productJson?.result ?? {};
+        const rawOptions = productResult.options ?? [];
+        const templateUuid = deriveTemplateUuid(productResult);
+
+        if (!templateUuid || !rawOptions.length) {
+          setFetchError(true);
+          return;
+        }
+
+        const templateRes = await fetch(`${BASE_URL}/template/${templateUuid}`);
+        const templateJson = await templateRes.json();
+
+        if (cancelled) return;
+
         const rawTemplate = templateJson?.result ?? null;
 
-        if (!rawTemplate || !rawOptions.length) {
+        if (!rawTemplate) {
           setFetchError(true);
           return;
         }
@@ -475,7 +490,7 @@ export default function CustomizationForm() {
           template: rawTemplate,
           options: rawOptions,
           baseUrl: BASE_URL,
-          breadcrumbs: BREADCRUMBS,
+          breadcrumbs: [],
           isAllowReplaceBackground: false,
         });
 
@@ -494,13 +509,13 @@ export default function CustomizationForm() {
 
     init();
     return () => { cancelled = true; };
-  }, []);
+  }, [productId]);
 
   /* Sync options state after any mutation */
   const syncOptions = useCallback(() => {
     if (serviceRef.current) {
       setOptions([...serviceRef.current.getOptions()]);
-      broadcastTemplate(serviceRef.current);
+      broadcastTemplate(serviceRef.current, true);
     }
   }, []);
 
