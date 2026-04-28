@@ -149,13 +149,14 @@ function DropdownOption({
         <select
           value={option.currentValue ?? ""}
           onChange={(e) => {
-            const chosen = values.find((v) => String(v.id) === e.target.value);
+            const chosen = values.find((v) => String(v.id) === e.target.value || v.valueName === e.target.value);
+            if (chosen) onSelect(chosen);
             if (chosen) onSelect(chosen);
           }}
           className="w-full px-4 py-2.5 pr-9 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#2a9d8f] focus:border-transparent bg-white appearance-none cursor-pointer"
         >
           {values.map((val) => (
-            <option key={val.id} value={val.id}>
+            <option key={val.id || val.valueName} value={val.id || val.valueName}>
               {val.valueName}
             </option>
           ))}
@@ -522,7 +523,7 @@ export default function CustomizationForm({ productId }: { productId: string }) 
   /* Handle swatch / dropdown selection */
   const handleSelectValue = useCallback(
     async (option: IOption, val: SwatchVal | DropdownVal) => {
-      option.currentValue = val.id;
+      option.currentValue = val.id || val.valueName;
       syncOptions(); // optimistic: reflect new value in UI immediately
       setIsProcessing(true);
       try {
