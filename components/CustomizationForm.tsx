@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  useEffect, useState, useRef, useCallback, useTransition, ChangeEvent,
+  useEffect, useState, useRef, useCallback, ChangeEvent,
 } from "react";
 import WM from "@megaads/wm";
 import {
@@ -450,7 +450,7 @@ export default function CustomizationForm({ productId }: { productId: string }) 
   const [options, setOptions] = useState<IOption[]>([]);
   const [ready, setReady] = useState(false);
   const [fetchError, setFetchError] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [isProcessing, setIsProcessing] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const serviceRef = useRef<any>(null);
 
@@ -521,12 +521,17 @@ export default function CustomizationForm({ productId }: { productId: string }) 
 
   /* Handle swatch / dropdown selection */
   const handleSelectValue = useCallback(
-    (option: IOption, val: SwatchVal | DropdownVal) => {
+    async (option: IOption, val: SwatchVal | DropdownVal) => {
       option.currentValue = val.id;
-      startTransition(async () => {
+      syncOptions(); // optimistic: reflect new value in UI immediately
+      setIsProcessing(true);
+      try {
         await serviceRef.current?.selectOptionValue(option, val);
-        syncOptions();
-      });
+      } catch {
+        // ignore service errors — UI already shows the new value
+      }
+      syncOptions();
+      setIsProcessing(false);
     },
     [syncOptions],
   );
@@ -539,7 +544,11 @@ export default function CustomizationForm({ productId }: { productId: string }) 
       syncOptions(); // optimistic UI update
       clearTimeout(textTimers.current[option.id]);
       textTimers.current[option.id] = setTimeout(async () => {
-        await serviceRef.current?.selectOptionValue(option, null);
+        try {
+          await serviceRef.current?.selectOptionValue(option, null);
+        } catch {
+          // ignore
+        }
         syncOptions();
       }, 300);
     },
@@ -548,12 +557,17 @@ export default function CustomizationForm({ productId }: { productId: string }) 
 
   /* Handle image upload */
   const handleImageUpload = useCallback(
-    (option: IOption, dataUrl: string) => {
+    async (option: IOption, dataUrl: string) => {
       option.currentValue = dataUrl;
-      startTransition(async () => {
+      syncOptions();
+      setIsProcessing(true);
+      try {
         await serviceRef.current?.selectOptionValue(option, null);
-        syncOptions();
-      });
+      } catch {
+        // ignore
+      }
+      syncOptions();
+      setIsProcessing(false);
     },
     [syncOptions],
   );
@@ -601,7 +615,7 @@ export default function CustomizationForm({ productId }: { productId: string }) 
       </div>
 
       {/* Dynamic options */}
-      <div className={`flex flex-col gap-5 transition-opacity ${isPending ? "opacity-60 pointer-events-none" : ""}`}>
+      <div className={`flex flex-col gap-5 transition-opacity ${isProcessing ? "opacity-60 pointer-events-none" : ""}`}>
         {visibleOptions.map((option) => {
           if (option.type === "swatch") {
             return (

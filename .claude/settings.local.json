@@ -8,7 +8,15 @@
       "Bash(npm install *)",
       "Bash(npx tsc *)",
       "Bash(taskkill /F /IM node.exe)",
-      "Bash(node -e \"console.log\\(require\\('./node_modules/@megaads/wm/package.json'\\).version\\)\")"
+      "Bash(node -e \"console.log\\(require\\('./node_modules/@megaads/wm/package.json'\\).version\\)\")",
+      "Read(//d/WorkSpace/POD/app/**)",
+      "Bash(npm --version)",
+      "Bash(npm list *)",
+      "Bash(npx @nestjs/cli --version)",
+      "Bash(npx @nestjs/cli new custom-product-backend --package-manager npm --skip-git --language TypeScript)",
+      "Bash(node -e \"const p=require\\('./node_modules/cache-manager/package.json'\\); console.log\\(p.version\\)\")",
+      "Bash(node -e \"const p=require\\('./node_modules/cache-manager-redis-yet/package.json'\\); console.log\\(p.name, p.version\\)\")",
+      "Bash(node -e \"const p=require\\('./node_modules/cache-manager-redis-yet/package.json'\\); console.log\\(JSON.stringify\\(p.exports||p.main||p.module, null, 2\\)\\)\")"
     ]
   }
 }
