@@ -6,10 +6,86 @@ import {
 import WM from "@megaads/wm";
 import {
   Minus, Plus, Gift, ShoppingCart, Zap, Heart, Share2,
-  CheckCircle, ImagePlus, Upload, X, Check, ChevronDown, Loader2,
+  CheckCircle, ImagePlus, Upload, X, Check, ChevronDown, Loader2, Eye,
 } from "lucide-react";
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
 
-/* ─── Minimal local types ──────────────────────────────────────────────── */
+/* ─── Preview Modal ────────────────────────────────────────────────────── */
+
+function PreviewModal({
+  isOpen,
+  onClose,
+  imageUrl,
+  onAddToCart,
+  isAdded,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  imageUrl: string;
+  onAddToCart: () => void;
+  isAdded: boolean;
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+      <div
+        className="relative w-full max-w-lg bg-white rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <h3 className="text-lg font-bold text-gray-900">Personalization Preview</h3>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-6">
+          <div className="relative aspect-square w-full rounded-2xl bg-gray-50 overflow-hidden border border-gray-100 mb-6 flex items-center justify-center">
+            <Zoom>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={imageUrl}
+                alt="Personalization Preview"
+                className="max-w-full max-h-full object-contain"
+              />
+            </Zoom>
+          </div>
+
+          <button
+            onClick={onAddToCart}
+            className={`w-full py-4 rounded-2xl font-bold text-base transition-all flex items-center justify-center gap-2 shadow-lg ${
+              isAdded
+                ? "bg-green-500 text-white shadow-green-500/30"
+                : "bg-[#2a9d8f] hover:bg-[#21867a] text-white shadow-[#2a9d8f]/30"
+            }`}
+          >
+            {isAdded ? (
+              <>
+                <CheckCircle className="w-6 h-6" /> Added to Cart!
+              </>
+            ) : (
+              <>
+                <ShoppingCart className="w-6 h-6" /> Add to Cart
+              </>
+            )}
+          </button>
+          <p className="text-center text-xs text-gray-400 mt-4">
+            * This is a digital preview. Final product colors may vary slightly.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Swatch option ────────────────────────────────────────────────────── */
 
 interface SwatchVal {
   id: number | string;
@@ -48,9 +124,11 @@ interface IOption {
 function SwatchOption({
   option,
   onSelect,
+  loadingValueId,
 }: {
   option: IOption;
   onSelect: (val: SwatchVal) => void;
+  loadingValueId?: number | string | null;
 }) {
   const values = option.swatchValues ?? [];
   const hasImages = values.some((v) => v.thumbImage);
@@ -71,11 +149,13 @@ function SwatchOption({
         <div className="flex flex-wrap gap-1.5">
           {values.map((val) => {
             const isActive = val.id === option.currentValue;
+            const isLoading = loadingValueId === val.id;
             return (
               <button
                 key={val.id}
-                onClick={() => onSelect(val)}
+                onClick={() => !loadingValueId && onSelect(val)}
                 title={val.valueName}
+                disabled={!!loadingValueId}
                 className={`relative flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden bg-gray-50 transition-all focus:outline-none ${
                   isActive
                     ? "ring-2 ring-[#2a9d8f] ring-offset-1"
@@ -88,11 +168,15 @@ function SwatchOption({
                   alt={val.valueName}
                   className="w-full h-full object-contain p-0.5"
                 />
-                {isActive && (
+                {isLoading ? (
+                  <span className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 bg-[#2a9d8f] rounded-full flex items-center justify-center">
+                    <Loader2 className="w-2 h-2 text-white animate-spin" />
+                  </span>
+                ) : isActive ? (
                   <span className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 bg-[#2a9d8f] rounded-full flex items-center justify-center">
                     <Check className="w-2 h-2 text-white" strokeWidth={3} />
                   </span>
-                )}
+                ) : null}
               </button>
             );
           })}
@@ -102,11 +186,13 @@ function SwatchOption({
         <div className="flex flex-wrap gap-2">
           {values.map((val) => {
             const isActive = val.id === option.currentValue;
+            const isLoading = loadingValueId === val.id;
             return (
               <button
                 key={val.id}
-                onClick={() => onSelect(val)}
+                onClick={() => !loadingValueId && onSelect(val)}
                 title={val.valueName}
+                disabled={!!loadingValueId}
                 style={{ backgroundColor: val.thumbColor || "#ccc" }}
                 className={`relative w-7 h-7 rounded-full border-2 border-white transition-all focus:outline-none shadow-sm ${
                   isActive
@@ -114,12 +200,16 @@ function SwatchOption({
                     : "hover:scale-110 hover:ring-2 hover:ring-offset-1 hover:ring-gray-300"
                 }`}
               >
-                {isActive && (
+                {isLoading ? (
+                  <Loader2
+                    className="absolute inset-0 m-auto w-3 h-3 text-white drop-shadow-sm animate-spin"
+                  />
+                ) : isActive ? (
                   <Check
                     className="absolute inset-0 m-auto w-3 h-3 text-white drop-shadow-sm"
                     strokeWidth={3}
                   />
-                )}
+                ) : null}
               </button>
             );
           })}
@@ -134,9 +224,11 @@ function SwatchOption({
 function DropdownOption({
   option,
   onSelect,
+  isLoading,
 }: {
   option: IOption;
   onSelect: (val: DropdownVal) => void;
+  isLoading?: boolean;
 }) {
   const values = option.dropdownValues ?? [];
 
@@ -148,20 +240,25 @@ function DropdownOption({
       <div className="relative">
         <select
           value={option.currentValue ?? ""}
+          disabled={isLoading}
           onChange={(e) => {
             const chosen = values.find((v) => String(v.id) === e.target.value || v.valueName === e.target.value);
             if (chosen) onSelect(chosen);
-            if (chosen) onSelect(chosen);
           }}
-          className="w-full px-4 py-2.5 pr-9 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#2a9d8f] focus:border-transparent bg-white appearance-none cursor-pointer"
+          className="w-full px-4 py-2.5 pr-9 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#2a9d8f] focus:border-transparent bg-white appearance-none cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
         >
+          <option value="">— Select {option.label} —</option>
           {values.map((val) => (
-            <option key={val.id || val.valueName} value={val.id || val.valueName}>
+            <option key={typeof val.id !== 'undefined' ? val.id : val.valueName} value={typeof val.id !== 'undefined' ? val.id : val.valueName}>
               {val.valueName}
             </option>
           ))}
         </select>
-        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+        {isLoading ? (
+          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#2a9d8f] animate-spin pointer-events-none" />
+        ) : (
+          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+        )}
       </div>
     </div>
   );
@@ -330,15 +427,17 @@ function ImageUploadOption({
 
 /* ─── Quantity + CTA strip ─────────────────────────────────────────────── */
 
-function CartStrip() {
+function CartStrip({
+  onPreview,
+  onAdd,
+  added,
+}: {
+  onPreview: () => void;
+  onAdd: () => void;
+  added: boolean;
+}) {
   const [qty, setQty] = useState(1);
-  const [added, setAdded] = useState(false);
   const [wishlisted, setWishlisted] = useState(false);
-
-  const handleAdd = () => {
-    setAdded(true);
-    setTimeout(() => setAdded(false), 2500);
-  };
 
   return (
     <div className="flex flex-col gap-4 pt-1">
@@ -375,7 +474,13 @@ function CartStrip() {
       {/* CTA buttons */}
       <div className="flex flex-col gap-3">
         <button
-          onClick={handleAdd}
+          onClick={onPreview}
+          className="w-full py-3.5 rounded-2xl font-semibold text-sm bg-white hover:bg-gray-50 text-gray-900 transition-all flex items-center justify-center gap-2 border-2 border-gray-200"
+        >
+          <Eye className="w-5 h-5 text-[#2a9d8f]" /> Preview Your Personalization
+        </button>
+        <button
+          onClick={onAdd}
           className={`w-full py-3.5 rounded-2xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
             added
               ? "bg-green-500 text-white"
@@ -391,9 +496,6 @@ function CartStrip() {
               <ShoppingCart className="w-5 h-5" /> Add to Cart
             </>
           )}
-        </button>
-        <button className="w-full py-3.5 rounded-2xl font-semibold text-sm bg-gray-900 hover:bg-gray-800 text-white transition-all flex items-center justify-center gap-2">
-          <Zap className="w-5 h-5" /> Buy Now
         </button>
       </div>
 
@@ -451,9 +553,35 @@ export default function CustomizationForm({ productId }: { productId: string }) 
   const [options, setOptions] = useState<IOption[]>([]);
   const [ready, setReady] = useState(false);
   const [fetchError, setFetchError] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingKey, setProcessingKey] = useState<string | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const serviceRef = useRef<any>(null);
+
+  /* Preview + Cart logic */
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewImageUrl, setPreviewImageUrl] = useState("");
+  const [added, setAdded] = useState(false);
+
+  const handleAdd = useCallback(() => {
+    setAdded(true);
+    setTimeout(() => setAdded(false), 2500);
+  }, []);
+
+  const handlePreviewRequest = useCallback(() => {
+    window.dispatchEvent(new CustomEvent("wm-request-preview"));
+  }, []);
+
+  useEffect(() => {
+    const onShowPreview = (e: Event) => {
+      const dataUrl = (e as CustomEvent).detail?.dataUrl;
+      if (dataUrl) {
+        setPreviewImageUrl(dataUrl);
+        setIsPreviewOpen(true);
+      }
+    };
+    window.addEventListener("wm-show-preview", onShowPreview);
+    return () => window.removeEventListener("wm-show-preview", onShowPreview);
+  }, []);
 
   /* Fetch data + init WM service on mount (client-only, no SSR) */
   useEffect(() => {
@@ -523,16 +651,18 @@ export default function CustomizationForm({ productId }: { productId: string }) 
   /* Handle swatch / dropdown selection */
   const handleSelectValue = useCallback(
     async (option: IOption, val: SwatchVal | DropdownVal) => {
-      option.currentValue = val.id || val.valueName;
-      syncOptions(); // optimistic: reflect new value in UI immediately
-      setIsProcessing(true);
+      const valueId = typeof val.id !== 'undefined' ? val.id : val.valueName;
+      const key = `${option.id}:${valueId}`;
+      option.currentValue = valueId;
+      syncOptions();
+      setProcessingKey(key);
       try {
         await serviceRef.current?.selectOptionValue(option, val);
       } catch {
         // ignore service errors — UI already shows the new value
       }
       syncOptions();
-      setIsProcessing(false);
+      setProcessingKey(null);
     },
     [syncOptions],
   );
@@ -559,16 +689,17 @@ export default function CustomizationForm({ productId }: { productId: string }) 
   /* Handle image upload */
   const handleImageUpload = useCallback(
     async (option: IOption, dataUrl: string) => {
+      const key = `${option.id}:upload`;
       option.currentValue = dataUrl;
       syncOptions();
-      setIsProcessing(true);
+      setProcessingKey(key);
       try {
         await serviceRef.current?.selectOptionValue(option, null);
       } catch {
         // ignore
       }
       syncOptions();
-      setIsProcessing(false);
+      setProcessingKey(null);
     },
     [syncOptions],
   );
@@ -600,7 +731,7 @@ export default function CustomizationForm({ productId }: { productId: string }) 
           </div>
         )}
 
-        <CartStrip />
+        <CartStrip onPreview={handlePreviewRequest} onAdd={handleAdd} added={added} />
       </div>
     );
   }
@@ -616,14 +747,22 @@ export default function CustomizationForm({ productId }: { productId: string }) 
       </div>
 
       {/* Dynamic options */}
-      <div className={`flex flex-col gap-5 transition-opacity ${isProcessing ? "opacity-60 pointer-events-none" : ""}`}>
+      <div className="flex flex-col gap-5">
         {visibleOptions.map((option) => {
           if (option.type === "swatch") {
+            const prefix = `${option.id}:`;
+            const rawLoading = processingKey?.startsWith(prefix)
+              ? processingKey.slice(prefix.length)
+              : null;
+            const loadingValueId = rawLoading != null && !isNaN(Number(rawLoading))
+              ? Number(rawLoading)
+              : rawLoading;
             return (
               <SwatchOption
                 key={option.id}
                 option={option}
                 onSelect={(val) => handleSelectValue(option, val)}
+                loadingValueId={loadingValueId}
               />
             );
           }
@@ -634,6 +773,7 @@ export default function CustomizationForm({ productId }: { productId: string }) 
                 key={option.id}
                 option={option}
                 onSelect={(val) => handleSelectValue(option, val)}
+                isLoading={processingKey?.startsWith(`${option.id}:`) ?? false}
               />
             );
           }
@@ -663,7 +803,16 @@ export default function CustomizationForm({ productId }: { productId: string }) 
       </div>
 
       {/* Quantity + Add to Cart */}
-      <CartStrip />
+      <CartStrip onPreview={handlePreviewRequest} onAdd={handleAdd} added={added} />
+
+      {/* Preview Modal */}
+      <PreviewModal
+        isOpen={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+        imageUrl={previewImageUrl}
+        onAddToCart={handleAdd}
+        isAdded={added}
+      />
     </div>
   );
 }

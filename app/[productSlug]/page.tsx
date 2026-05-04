@@ -1,5 +1,8 @@
+"use client";
+
 import { notFound } from "next/navigation";
-import { ChevronRight } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ChevronRight, ZoomIn } from "lucide-react";
 import Header from "@/components/Header";
 import TemplatePreviewLoader from "@/components/TemplatePreviewLoader";
 import CustomizationFormLoader from "@/components/CustomizationFormLoader";
@@ -14,11 +17,21 @@ interface Props {
   params: Promise<{ productSlug: string }>;
 }
 
-export default async function ProductPage({ params }: Props) {
-  const { productSlug } = await params;
+export default function ProductPage({ params }: Props) {
+  const [productId, setProductId] = useState<string | null>(null);
 
-  if (!productSlug.startsWith("s-p")) notFound();
-  const productId = productSlug.slice(3); // strip "s-p"
+  useEffect(() => {
+    params.then((p) => {
+      const id = p.productSlug.slice(3);
+      setProductId(id);
+    });
+  }, [params]);
+
+  const handleZoom = () => {
+    window.dispatchEvent(new CustomEvent("wm-request-preview"));
+  };
+
+  if (productId === null) return null;
   if (!productId) notFound();
 
   return (
@@ -46,13 +59,33 @@ export default async function ProductPage({ params }: Props) {
 
         {/* Product section */}
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 xl:gap-16">
-            {/* Left – Gallery */}
-            <div className="lg:sticky lg:top-24 lg:self-start">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 xl:gap-16 items-start">
+            {/* Left – Gallery (Sticky) */}
+            <div 
+              onClick={handleZoom}
+              className="sticky top-[104px] lg:top-24 z-30 bg-white/95 backdrop-blur-sm lg:bg-transparent lg:backdrop-none py-2 -mx-4 px-4 lg:mx-0 lg:px-0 shadow-md lg:shadow-none cursor-pointer group"
+            >
               <TemplatePreviewLoader />
+              
+              {/* Desktop zoom hint */}
+              <div className="hidden lg:group-hover:flex absolute inset-0 items-center justify-center bg-black/5 transition-colors rounded-2xl pointer-events-none">
+                 <div className="bg-white/90 p-3 rounded-full shadow-lg scale-90 group-hover:scale-100 transition-transform">
+                    <ZoomIn className="w-6 h-6 text-[#2a9d8f]" />
+                 </div>
+              </div>
+
+              {/* Mobile Live + Zoom hint */}
+              <div className="lg:hidden absolute top-4 right-6 flex items-center gap-2">
+                <span className="bg-[#2a9d8f] text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest shadow-sm">
+                  Live
+                </span>
+                <div className="bg-white/90 p-1.5 rounded-full shadow-md text-[#2a9d8f]">
+                  <ZoomIn className="w-3.5 h-3.5" />
+                </div>
+              </div>
             </div>
 
-            {/* Right – Product info */}
+            {/* Right – Product info & Customization Form */}
             <div className="flex flex-col gap-6">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs font-semibold text-[#2a9d8f] bg-[#e8f5f4] px-3 py-1 rounded-full">
@@ -83,10 +116,12 @@ export default async function ProductPage({ params }: Props) {
               </div>
 
               <CustomizationFormLoader productId={productId} />
-
-              <ShippingInfo />
-              <ProductDescription />
             </div>
+          </div>
+
+          <div className="mt-16 flex flex-col gap-12 pt-12 border-t border-gray-100">
+            <ShippingInfo />
+            <ProductDescription />
           </div>
         </section>
 

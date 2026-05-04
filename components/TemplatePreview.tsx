@@ -166,6 +166,7 @@ function elementFingerprint(el: TemplateElement): string {
 const imageCache = new Map<string, fabric.Image>();
 
 async function getCachedImage(url: string): Promise<fabric.Image | null> {
+  console.log(url);
   if (imageCache.has(url)) {
     // Clone cached image để mỗi element có instance riêng
     const cached = imageCache.get(url)!;
@@ -226,6 +227,7 @@ export default function TemplatePreview() {
       }
     }
 
+    console.log(template.elements)
     const elements = [...(template.elements ?? [])]
       .filter((el) => el.isShow || (el.opacity ?? 1) > 0)
       .sort((a, b) => a.order - b.order);
@@ -284,6 +286,15 @@ export default function TemplatePreview() {
           })
         } else {
           obj = new fabric.IText(text, configs);
+          // Shrink font to fit bounding box width when text overflows
+          if (cfg.sWidth && cfg.sWidth > 0) {
+            const boxWidth = cfg.sWidth * scale;
+            if ((obj.width ?? 0) > boxWidth) {
+              const shrunkSize = Math.max(6, Math.floor(configs.fontSize * boxWidth / (obj.width ?? 1)));
+              obj.set({ fontSize: shrunkSize });
+              obj.initDimensions();
+            }
+          }
         }
 
         obj.setPositionByOrigin(
@@ -412,8 +423,20 @@ export default function TemplatePreview() {
     };
     window.addEventListener("wm-template-update", handleUpdate);
 
+    const handleRequestPreview = () => {
+      if (fabricRef.current) {
+        const dataUrl = fabricRef.current.toDataURL({
+          format: "png",
+          multiplier: 2,
+        });
+        window.dispatchEvent(new CustomEvent("wm-show-preview", { detail: { dataUrl } }));
+      }
+    };
+    window.addEventListener("wm-request-preview", handleRequestPreview);
+
     return () => {
       window.removeEventListener("wm-template-update", handleUpdate);
+      window.removeEventListener("wm-request-preview", handleRequestPreview);
       canvas.dispose();
       fabricRef.current = null;
       objectMapRef.current.clear();

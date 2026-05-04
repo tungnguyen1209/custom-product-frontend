@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { ChevronLeft, ChevronRight, ZoomIn } from "lucide-react";
 
 const productImages = [
@@ -65,18 +65,74 @@ const productImages = [
 export default function ProductGallery() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [zoomed, setZoomed] = useState(false);
+  const dragStartX = useRef<number | null>(null);
+  const isDragging = useRef(false);
 
   const prev = () =>
     setActiveIndex((i) => (i === 0 ? productImages.length - 1 : i - 1));
   const next = () =>
     setActiveIndex((i) => (i === productImages.length - 1 ? 0 : i + 1));
 
+  /* Touch Events for Mobile */
+  const handleTouchStart = (e: React.TouchEvent) => {
+    dragStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (dragStartX.current === null) return;
+    const dragEndX = e.changedTouches[0].clientX;
+    const diff = dragStartX.current - dragEndX;
+    if (Math.abs(diff) > 50) {
+      if (diff > 0) next(); else prev();
+    }
+    dragStartX.current = null;
+  };
+
+  /* Mouse Events for Desktop Drag */
+  const handleMouseDown = (e: React.MouseEvent) => {
+    // Only track left click
+    if (e.button !== 0) return;
+    dragStartX.current = e.clientX;
+    isDragging.current = true;
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging.current) return;
+    // We could add visual offset here if needed
+  };
+
+  const handleMouseUp = (e: React.MouseEvent) => {
+    if (!isDragging.current || dragStartX.current === null) return;
+    const dragEndX = e.clientX;
+    const diff = dragStartX.current - dragEndX;
+
+    if (Math.abs(diff) > 50) {
+      if (diff > 0) next(); else prev();
+    }
+
+    isDragging.current = false;
+    dragStartX.current = null;
+  };
+
+  const handleMouseLeave = () => {
+    isDragging.current = false;
+    dragStartX.current = null;
+  };
+
   const active = productImages[activeIndex];
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3 select-none">
       {/* Main image */}
-      <div className="relative group rounded-2xl overflow-hidden bg-gray-50 aspect-square">
+      <div 
+        className="relative group rounded-2xl overflow-hidden bg-gray-50 aspect-square cursor-grab active:cursor-grabbing"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
+      >
         <div
           className={`w-full h-full bg-gradient-to-br ${active.bg} flex items-center justify-center cursor-zoom-in`}
           onClick={() => setZoomed(!zoomed)}
@@ -116,7 +172,7 @@ export default function ProductGallery() {
       </div>
 
       {/* Thumbnail strip */}
-      <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+      <div className="hidden lg:flex gap-2 overflow-x-auto scrollbar-hide py-1">
         {productImages.map((img, i) => (
           <button
             key={img.id}
