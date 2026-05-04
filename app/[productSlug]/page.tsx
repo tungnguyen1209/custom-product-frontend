@@ -63,7 +63,7 @@ export default function ProductPage({ params }: Props) {
             {/* Left – Gallery (Sticky) */}
             <div 
               onClick={handleZoom}
-              className="sticky top-[104px] lg:top-24 z-30 bg-white/95 backdrop-blur-sm lg:bg-transparent lg:backdrop-none py-2 -mx-4 px-4 lg:mx-0 lg:px-0 shadow-md lg:shadow-none cursor-pointer group"
+              className="sticky top-0 lg:top-24 z-[60] lg:z-30 bg-white lg:bg-transparent -mx-4 lg:mx-0 shadow-md lg:shadow-none cursor-pointer group"
             >
               <TemplatePreviewLoader />
               
