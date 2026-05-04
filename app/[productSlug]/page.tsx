@@ -64,7 +64,7 @@ export default function ProductPage({ params }: Props) {
             {/* Left – Gallery (Sticky) */}
             <StickyPreviewWrapper 
               onClick={handleZoom}
-              className="sticky top-0 lg:top-24 z-[60] lg:z-30 bg-white lg:bg-transparent -mx-4 lg:mx-0 shadow-md lg:shadow-none cursor-pointer group"
+              className="sticky top-24 lg:top-32 z-40 bg-white lg:bg-transparent -mx-4 lg:mx-0 shadow-md lg:shadow-none cursor-pointer group"
             >
               <TemplatePreviewLoader />
               
