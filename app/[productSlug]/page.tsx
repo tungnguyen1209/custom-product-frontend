@@ -12,6 +12,7 @@ import ReviewsSection from "@/components/ReviewsSection";
 import RelatedProducts from "@/components/RelatedProducts";
 import Footer from "@/components/Footer";
 import StarRating from "@/components/StarRating";
+import StickyPreviewWrapper from "@/components/StickyPreviewWrapper";
 
 interface Props {
   params: Promise<{ productSlug: string }>;
@@ -61,7 +62,7 @@ export default function ProductPage({ params }: Props) {
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 xl:gap-16 items-start">
             {/* Left – Gallery (Sticky) */}
-            <div 
+            <StickyPreviewWrapper 
               onClick={handleZoom}
               className="sticky top-0 lg:top-24 z-[60] lg:z-30 bg-white lg:bg-transparent -mx-4 lg:mx-0 shadow-md lg:shadow-none cursor-pointer group"
             >
@@ -83,7 +84,7 @@ export default function ProductPage({ params }: Props) {
                   <ZoomIn className="w-3.5 h-3.5" />
                 </div>
               </div>
-            </div>
+            </StickyPreviewWrapper>
 
             {/* Right – Product info & Customization Form */}
             <div className="flex flex-col gap-6">
