@@ -90,6 +90,7 @@ interface TemplateElement {
 interface WMTemplate {
   width: number;
   height: number;
+  baseFile?: string;
   elements: TemplateElement[];
 }
 
@@ -150,7 +151,7 @@ function getImageUrl(el: TemplateElement): string | undefined {
 
 function elementFingerprint(el: TemplateElement): string {
   const cfg = el.config;
-  if (el.type === "text_box" || el.type === "text_box_circular") {
+  if (el.type === "text_box" || el.type === "text_box_circular" || el.type === "text") {
     return `text|${cfg.textConfig?.text}|${cfg.textConfig?.fill}|${cfg.textConfig?.fontSize}|${cfg.textConfig?.font}|${cfg.textConfig?.multiline}|${cfg.centerX}|${cfg.centerY}|${cfg.sWidth}|${cfg.rotation}`;
   }
   const url = getImageUrl(el);
@@ -166,7 +167,6 @@ function elementFingerprint(el: TemplateElement): string {
 const imageCache = new Map<string, fabric.Image>();
 
 async function getCachedImage(url: string): Promise<fabric.Image | null> {
-  console.log(url);
   if (imageCache.has(url)) {
     // Clone cached image để mỗi element có instance riêng
     const cached = imageCache.get(url)!;
@@ -235,6 +235,38 @@ export default function TemplatePreview() {
     const newElementIds = new Set<string | number>();
     const pendingAdds: { id: string | number; order: number; obj: fabric.Object }[] = [];
 
+    // --- Xử lý baseFile ---
+    if (template.baseFile) {
+      const elId = "baseFile";
+      newElementIds.add(elId);
+      const fp = `baseFile|${template.baseFile}`;
+      const existing = objectMap.get(elId);
+
+      if (!existing || existing.fingerprint !== fp) {
+        if (existing) {
+          canvas.remove(existing.fabricObj);
+          objectMap.delete(elId);
+        }
+
+        const oImg = await getCachedImage(template.baseFile);
+        if (oImg) {
+          if (myRender !== renderCounterRef.current) return;
+          oImg.set({
+            scaleX: CANVAS_PX / (oImg.width || 1),
+            scaleY: (templateHeight * scale) / (oImg.height || 1),
+            left: 0,
+            top: 0,
+            originX: "left",
+            originY: "top",
+            selectable: false,
+            evented: false,
+          });
+          objectMap.set(elId, { fingerprint: fp, fabricObj: oImg });
+          pendingAdds.push({ id: elId, order: -9999, obj: oImg });
+        }
+      }
+    }
+
     for (const el of elements) {
       if (myRender !== renderCounterRef.current) return;
 
@@ -258,7 +290,7 @@ export default function TemplatePreview() {
       const cfg = el.config;
 
       /* ── Text ──────────────────────────────────────────────────────── */
-      if (el.type === "text_box" || el.type === "text_box_circular") {
+      if (el.type === "text_box" || el.type === "text_box_circular" || el.type === "text") {
         const text = cfg.textConfig?.text ?? "";
         if (!text.trim()) continue;
         await loadFont(cfg.textConfig?.font, cfg.textConfig?.font);
@@ -387,13 +419,22 @@ export default function TemplatePreview() {
     }
 
     // Sắp xếp lại thứ tự trên canvas theo order
-    const sortedElements = elements.filter((el) => objectMap.has(el.elementId));
-    for (let i = 0; i < sortedElements.length; i++) {
-      const tracked = objectMap.get(sortedElements[i].elementId);
-      if (tracked) {
-        canvas.moveTo(tracked.fabricObj, i);
-      }
-    }
+    const allTracked = Array.from(objectMap.entries())
+      .map(([id, tracked]) => {
+        let order = 0;
+        if (id === "baseFile") {
+          order = -9999;
+        } else {
+          const el = elements.find((e) => String(e.elementId) === String(id));
+          order = el ? el.order : 0;
+        }
+        return { tracked, order };
+      })
+      .sort((a, b) => a.order - b.order);
+
+    allTracked.forEach((item, index) => {
+      canvas.moveTo(item.tracked.fabricObj, index);
+    });
 
     if (myRender === renderCounterRef.current) {
       canvas.renderAll();

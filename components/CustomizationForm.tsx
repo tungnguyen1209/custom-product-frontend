@@ -681,7 +681,7 @@ export default function CustomizationForm({ productId }: { productId: string }) 
           // ignore
         }
         syncOptions();
-      }, 300);
+      }, 100);
     },
     [syncOptions],
   );
