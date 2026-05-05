@@ -239,10 +239,10 @@ function DropdownOption({
       </label>
       <div className="relative">
         <select
-          value={option.currentValue ?? ""}
+          value={option.currentValue}
           disabled={isLoading}
           onChange={(e) => {
-            const chosen = values.find((v) => String(v.id) === e.target.value || v.valueName === e.target.value);
+            const chosen = values.find((v) => typeof v.id !== 'undefined' ? String(v.id) == e.target.value : v.valueName == e.target.value);
             if (chosen) onSelect(chosen);
           }}
           className="w-full px-4 py-2.5 pr-9 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#2a9d8f] focus:border-transparent bg-white appearance-none cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"

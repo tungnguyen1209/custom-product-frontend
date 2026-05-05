@@ -227,7 +227,6 @@ export default function TemplatePreview() {
       }
     }
 
-    console.log(template.elements)
     const elements = [...(template.elements ?? [])]
       .filter((el) => el.isShow || (el.opacity ?? 1) > 0)
       .sort((a, b) => a.order - b.order);
