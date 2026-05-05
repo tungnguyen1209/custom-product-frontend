@@ -62,16 +62,28 @@ const productImages = [
   },
 ];
 
-export default function ProductGallery() {
+export default function ProductGallery({
+  showCanvas = false,
+  setShowCanvas = () => {},
+  canvas = null,
+}: {
+  showCanvas?: boolean;
+  setShowCanvas?: (v: boolean) => void;
+  canvas?: React.ReactNode;
+}) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [zoomed, setZoomed] = useState(false);
   const dragStartX = useRef<number | null>(null);
   const isDragging = useRef(false);
 
-  const prev = () =>
+  const prev = () => {
+    setShowCanvas(false);
     setActiveIndex((i) => (i === 0 ? productImages.length - 1 : i - 1));
-  const next = () =>
+  };
+  const next = () => {
+    setShowCanvas(false);
     setActiveIndex((i) => (i === productImages.length - 1 ? 0 : i + 1));
+  };
 
   /* Touch Events for Mobile */
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -119,64 +131,94 @@ export default function ProductGallery() {
     dragStartX.current = null;
   };
 
-  const active = productImages[activeIndex];
-
   return (
     <div className="flex flex-col gap-3 select-none">
-      {/* Main image */}
-      <div 
-        className="relative group rounded-2xl overflow-hidden bg-gray-50 aspect-square cursor-grab active:cursor-grabbing"
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseLeave}
-      >
+      {/* Main image / Canvas Container */}
+      <div className="relative rounded-2xl overflow-hidden bg-gray-50 aspect-square border border-gray-100 shadow-sm">
+        {/* Canvas View */}
         <div
-          className={`w-full h-full bg-gradient-to-br ${active.bg} flex items-center justify-center cursor-zoom-in`}
-          onClick={() => setZoomed(!zoomed)}
+          className={`absolute inset-0 z-10 bg-white ${
+            showCanvas ? "block" : "hidden"
+          }`}
         >
-          <div className="text-center">
-            <div className="text-8xl mb-4">{active.emoji}</div>
-            <p className="text-gray-500 text-sm font-medium">{active.label}</p>
-            <p className="text-gray-400 text-xs mt-1 max-w-[180px] mx-auto">
-              {active.alt}
-            </p>
+          {canvas}
+        </div>
+
+        {/* Slider View */}
+        <div
+          className={`absolute inset-0 group cursor-grab active:cursor-grabbing ${
+            !showCanvas ? "block" : "hidden"
+          }`}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseLeave}
+        >
+          <div
+            className="flex w-full h-full transition-transform duration-500 ease-out"
+            style={{ transform: `translateX(-${activeIndex * 100}%)` }}
+          >
+            {productImages.map((img) => (
+              <div
+                key={img.id}
+                className={`w-full h-full flex-shrink-0 bg-gradient-to-br ${img.bg} flex items-center justify-center cursor-zoom-in`}
+                onClick={() => setZoomed(!zoomed)}
+              >
+                <div className="text-center">
+                  <div className="text-8xl mb-4">{img.emoji}</div>
+                  <p className="text-gray-500 text-sm font-medium">{img.label}</p>
+                  <p className="text-gray-400 text-xs mt-1 max-w-[180px] mx-auto">
+                    {img.alt}
+                  </p>
+                </div>
+              </div>
+            ))}
           </div>
-        </div>
 
-        {/* Navigation arrows */}
-        <button
-          onClick={prev}
-          className="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 shadow-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
-        >
-          <ChevronLeft className="w-5 h-5 text-gray-700" />
-        </button>
-        <button
-          onClick={next}
-          className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 shadow-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
-        >
-          <ChevronRight className="w-5 h-5 text-gray-700" />
-        </button>
+          {/* Navigation arrows */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              prev();
+            }}
+            className="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 shadow-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
+          >
+            <ChevronLeft className="w-5 h-5 text-gray-700" />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              next();
+            }}
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 shadow-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
+          >
+            <ChevronRight className="w-5 h-5 text-gray-700" />
+          </button>
 
-        {/* Counter */}
-        <div className="absolute bottom-3 right-3 bg-black/40 text-white text-xs px-2 py-1 rounded-full">
-          {activeIndex + 1} / {productImages.length}
-        </div>
+          {/* Counter */}
+          <div className="absolute bottom-3 right-3 bg-black/40 text-white text-xs px-2 py-1 rounded-full">
+            {activeIndex + 1} / {productImages.length}
+          </div>
 
-        {/* Zoom icon */}
-        <div className="absolute top-3 right-3 bg-white/80 rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-          <ZoomIn className="w-4 h-4 text-gray-600" />
+          {/* Zoom icon */}
+          <div className="absolute top-3 right-3 bg-white/80 rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+            <ZoomIn className="w-4 h-4 text-gray-600" />
+          </div>
         </div>
       </div>
 
       {/* Thumbnail strip */}
-      <div className="hidden lg:flex gap-2 overflow-x-auto scrollbar-hide py-1">
+      <div className="hidden lg:flex gap-2 overflow-x-auto scrollbar-hide p-1">
         {productImages.map((img, i) => (
           <button
             key={img.id}
-            onClick={() => setActiveIndex(i)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowCanvas(false);
+              setActiveIndex(i);
+            }}
             className={`flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden transition-all ${
               i === activeIndex
                 ? "ring-2 ring-[#2a9d8f] ring-offset-1"
