@@ -101,7 +101,7 @@ export default function RelatedProducts({ productId }: { productId: string | nul
   if (products.length === 0) return null;
 
   return (
-    <section className="py-12 bg-[#f7f7f7] border-t border-gray-100 overflow-hidden">
+    <section className="py-4 bg-[#f7f7f7] border-t border-gray-100 overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-900">

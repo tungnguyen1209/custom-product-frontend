@@ -124,7 +124,7 @@ export default function ProductPage({ params }: Props) {
         <RelatedProducts productId={productId} />
 
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-          <div className="mt-16 grid grid-cols-1 lg:grid-cols-2 gap-10 xl:gap-16 pt-12 border-t border-gray-100">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 xl:gap-16 pt-4 border-t border-gray-100">
             <div className="flex flex-col gap-12">
               <ReviewsSection />
             </div>

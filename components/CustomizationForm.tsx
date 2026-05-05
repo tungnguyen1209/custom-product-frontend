@@ -290,7 +290,7 @@ function TextInputOption({
           }
           placeholder={placeholder}
           maxLength={maxLen}
-          rows={maxLen > 60 ? 5 : 3}
+          rows={maxLen > 60 ? 5 : 1}
           className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#2a9d8f] focus:border-transparent resize-none placeholder:text-gray-400"
           style={{ minHeight: maxLen > 60 ? undefined : "42px" }}
         />
