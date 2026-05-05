@@ -100,7 +100,7 @@ export default function ProductPage() {
         <ReviewsSection />
 
         {/* Related products */}
-        <RelatedProducts />
+        <RelatedProducts productId={null} />
       </main>
 
       <Footer />
