@@ -17,13 +17,12 @@ export default function TemplatePreviewLoader() {
       const detail = (e as CustomEvent<{ isUserInteraction?: boolean }>).detail;
       if (detail?.isUserInteraction) {
         setShowCanvas(true);
-        window.removeEventListener("wm-template-update", handleUpdate);
+        // We probably don't want to remove the listener if we allow switching back and forth
       }
     };
     window.addEventListener("wm-template-update", handleUpdate);
     return () => window.removeEventListener("wm-template-update", handleUpdate);
   }, []);
 
-  if (showCanvas) return <TemplatePreview />;
-  return <ProductGallery />;
+  return <ProductGallery showCanvas={showCanvas} setShowCanvas={setShowCanvas} canvas={<TemplatePreview />} />;
 }

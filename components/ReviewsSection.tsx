@@ -104,8 +104,8 @@ export default function ReviewsSection() {
   const displayed = showAll ? reviews : reviews.slice(0, 3);
 
   return (
-    <section className="py-12 border-t border-gray-100">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section>
+      <div>
         <h2 className="text-2xl font-bold text-gray-900 mb-8">
           Customer Reviews
         </h2>
