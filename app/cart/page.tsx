@@ -40,32 +40,29 @@ const FREE_SHIP_THRESHOLD = 60;
 
 /* ─── Cart item row ────────────────────────────────────────────────────── */
 
-type Item = typeof INITIAL_ITEMS[number];
-
 function CartItem({
   item,
   onQty,
   onRemove,
 }: {
-  item: Item;
+  item: any;
   onQty: (delta: number) => void;
   onRemove: () => void;
 }) {
   return (
     <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex gap-4">
-      <div className={`flex-shrink-0 w-[72px] h-[72px] rounded-xl bg-gradient-to-br ${item.bg} flex items-center justify-center`}>
-        <span className="text-3xl">{item.emoji}</span>
+      <div className={`flex-shrink-0 w-[72px] h-[72px] rounded-xl bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center`}>
+        <span className="text-3xl">🎁</span>
       </div>
 
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <h3 className="text-sm font-semibold text-gray-900 leading-snug line-clamp-2">{item.name}</h3>
-            <p className="text-xs text-gray-400 mt-0.5">{item.variant}</p>
+            <h3 className="text-sm font-semibold text-gray-900 leading-snug line-clamp-2">{item.productName}</h3>
             <div className="flex flex-wrap gap-1 mt-1.5">
-              {item.tags.map(([k, v]) => (
+              {Object.entries(item.customization).map(([k, v]: [string, any]) => (
                 <span key={k} className="text-[10px] bg-gray-50 border border-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
-                  {k}: {v}
+                  {k}: {String(v)}
                 </span>
               ))}
             </div>
@@ -79,12 +76,12 @@ function CartItem({
           <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden">
             <button
               onClick={() => onQty(-1)}
-              disabled={item.qty <= 1}
+              disabled={item.quantity <= 1}
               className="w-8 h-8 flex items-center justify-center hover:bg-gray-50 text-gray-500 disabled:opacity-30 transition-colors"
             >
               <Minus className="w-3 h-3" />
             </button>
-            <span className="w-8 text-center text-sm font-semibold">{item.qty}</span>
+            <span className="w-8 text-center text-sm font-semibold">{item.quantity}</span>
             <button
               onClick={() => onQty(1)}
               className="w-8 h-8 flex items-center justify-center hover:bg-gray-50 text-gray-500 transition-colors"
@@ -93,10 +90,7 @@ function CartItem({
             </button>
           </div>
           <div className="text-right">
-            <div className="text-sm font-bold text-gray-900">AU${(item.price * item.qty).toFixed(2)}</div>
-            {item.original && (
-              <div className="text-xs text-gray-400 line-through">AU${(item.original * item.qty).toFixed(2)}</div>
-            )}
+            <div className="text-sm font-bold text-gray-900">AU${(item.unitPrice * item.quantity).toFixed(2)}</div>
           </div>
         </div>
       </div>
@@ -106,23 +100,21 @@ function CartItem({
 
 /* ─── Page ─────────────────────────────────────────────────────────────── */
 
+import { useCart } from "@/context/CartContext";
+
 export default function CartPage() {
-  const [items, setItems] = useState(INITIAL_ITEMS);
+  const { cart, loading, updateItem, removeItem } = useCart();
   const [promo, setPromo] = useState("");
   const [promoState, setPromoState] = useState<"idle" | "ok" | "err">("idle");
   const [giftMsg, setGiftMsg] = useState("");
 
-  const updateQty = (id: number, delta: number) =>
-    setItems(prev => prev.map(i => i.id === id ? { ...i, qty: Math.max(1, i.qty + delta) } : i));
+  const items = cart?.items || [];
 
-  const removeItem = (id: number) =>
-    setItems(prev => prev.filter(i => i.id !== id));
-
-  const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
+  const subtotal = items.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
   const discount = promoState === "ok" ? subtotal * 0.1 : 0;
   const shipping = subtotal - discount >= FREE_SHIP_THRESHOLD ? 0 : 9.95;
   const total = subtotal - discount + shipping;
-  const totalQty = items.reduce((s, i) => s + i.qty, 0);
+  const totalQty = items.reduce((s, i) => s + i.quantity, 0);
 
   const applyPromo = () => {
     if (promo.trim().toUpperCase() === "GRAD10") {
@@ -131,6 +123,18 @@ export default function CartPage() {
       setPromoState("err");
     }
   };
+
+  if (loading) {
+    return (
+      <>
+        <Header />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="w-8 h-8 border-4 border-[#2a9d8f]/20 border-t-[#2a9d8f] rounded-full animate-spin" />
+        </main>
+        <Footer />
+      </>
+    );
+  }
 
   /* Empty state */
   if (items.length === 0) {
@@ -208,10 +212,10 @@ export default function CartPage() {
               {/* Items */}
               {items.map(item => (
                 <CartItem
-                  key={item.id}
+                  key={item.productId}
                   item={item}
-                  onQty={(d) => updateQty(item.id, d)}
-                  onRemove={() => removeItem(item.id)}
+                  onQty={(d) => updateItem(item.productId, item.quantity + d)}
+                  onRemove={() => removeItem(item.productId)}
                 />
               ))}
 

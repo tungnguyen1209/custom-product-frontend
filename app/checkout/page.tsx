@@ -42,10 +42,19 @@ function Field({
   );
 }
 
+import { useCart } from "@/context/CartContext";
+import { apiRequest } from "@/lib/api";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "pk_test_...");
+
 /* ─── Order summary sidebar ─────────────────────────────────────────────── */
 
-function OrderSummary({ shippingCost, finalTotal }: { shippingCost: number; finalTotal: number }) {
+function OrderSummary({ items, shippingCost, finalTotal }: { items: any[]; shippingCost: number; finalTotal: number }) {
   const [expanded, setExpanded] = useState(true);
+  const subtotal = items.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
 
   return (
     <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
@@ -59,26 +68,28 @@ function OrderSummary({ shippingCost, finalTotal }: { shippingCost: number; fina
 
       {expanded && (
         <div className="px-5 py-4 flex flex-col gap-3">
-          {ORDER_ITEMS.map(item => (
-            <div key={item.id} className="flex items-center gap-3">
-              <div className={`flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br ${item.bg} flex items-center justify-center relative`}>
-                <span className="text-xl">{item.emoji}</span>
+          {items.map((item, idx) => (
+            <div key={idx} className="flex items-center gap-3">
+              <div className={`flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center relative`}>
+                <span className="text-xl">🎁</span>
                 <span className="absolute -top-1.5 -right-1.5 min-w-[18px] min-h-[18px] bg-gray-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-1">
-                  {item.qty}
+                  {item.quantity}
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-gray-800 line-clamp-1">{item.name}</p>
-                <p className="text-[11px] text-gray-400">{item.variant}</p>
+                <p className="text-xs font-semibold text-gray-800 line-clamp-1">{item.productName}</p>
+                <p className="text-[11px] text-gray-400 line-clamp-1">
+                  {Object.entries(item.customization).map(([k, v]) => `${k}: ${v}`).join(', ')}
+                </p>
               </div>
-              <span className="text-sm font-bold text-gray-900 flex-shrink-0">AU${item.price.toFixed(2)}</span>
+              <span className="text-sm font-bold text-gray-900 flex-shrink-0">AU${(item.unitPrice * item.quantity).toFixed(2)}</span>
             </div>
           ))}
 
           <div className="border-t border-gray-100 pt-3 mt-1 flex flex-col gap-2 text-sm">
             <div className="flex justify-between text-gray-600">
               <span>Subtotal</span>
-              <span>AU${SUBTOTAL.toFixed(2)}</span>
+              <span>AU${subtotal.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-gray-600">
               <span>Shipping</span>
@@ -166,9 +177,12 @@ type FormState = {
 };
 
 export default function CheckoutPage() {
+  const { cart, loading, clearCart } = useCart();
   const [done, setDone] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<"card" | "paypal">("card");
+  const [orderId, setOrderId] = useState<number | null>(null);
 
   const [form, setForm] = useState<FormState>({
     email: "", firstName: "", lastName: "",
@@ -182,20 +196,70 @@ export default function CheckoutPage() {
   const set = (key: string) => (v: string) =>
     setForm(f => ({ ...f, [key]: v }));
 
-  const shippingCost = form.shippingMethod === "express" ? 14.95 : 0;
-  const finalTotal = SUBTOTAL + shippingCost;
+  const items = cart?.items || [];
+  const subtotal = items.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
+  const shippingCost = form.shippingMethod === "express" ? 14.95 : (subtotal >= 60 ? 0 : 9.95);
+  const finalTotal = subtotal + shippingCost;
 
-  const formatCard = (v: string) =>
-    v.replace(/\D/g, "").slice(0, 16).replace(/(.{4})/g, "$1 ").trim();
-
-  const formatExpiry = (v: string) =>
-    v.replace(/\D/g, "").slice(0, 4).replace(/^(.{2})(.+)/, "$1/$2");
-
-  const handlePlace = async () => {
+  const handlePlace = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setProcessing(true);
-    await new Promise(r => setTimeout(r, 1800));
-    setDone(true);
+    
+    try {
+      // 1. Create order
+      const order = await apiRequest('/orders', {
+        method: 'POST',
+        body: JSON.stringify({
+          items: items.map(i => ({
+            productId: i.productId,
+            productName: i.productName,
+            customization: i.customization,
+            quantity: i.quantity,
+            unitPrice: i.unitPrice,
+          })),
+          shippingMethod: form.shippingMethod,
+          shippingAddress: {
+            firstName: form.firstName,
+            lastName: form.lastName,
+            street: form.address,
+            suburb: form.suburb,
+            state: form.state,
+            postcode: form.postcode,
+            country: form.country,
+            phone: form.phone,
+            email: form.email,
+          },
+        }),
+      });
+
+      setOrderId(order.id);
+
+      if (paymentMethod === 'card') {
+        // Stripe logic will be handled by Elements wrapper or separate component
+        // For simplicity in this demo, we'll call create-intent and then mark as done
+        const { clientSecret } = await apiRequest('/payment/create-intent', {
+          method: 'POST',
+          body: JSON.stringify({ orderId: order.id }),
+        });
+        
+        // In real app: confirm card payment with stripe.confirmCardPayment(clientSecret, ...)
+        console.log('Stripe client secret:', clientSecret);
+        await new Promise(r => setTimeout(r, 1500));
+      } else {
+        // PayPal logic
+        await new Promise(r => setTimeout(r, 1500));
+      }
+
+      await clearCart();
+      setDone(true);
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setProcessing(false);
+    }
   };
+
+  if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
 
   return (
     <>
@@ -220,7 +284,7 @@ export default function CheckoutPage() {
 
             {summaryOpen && (
               <div className="lg:hidden mb-4">
-                <OrderSummary shippingCost={shippingCost} finalTotal={finalTotal} />
+                <OrderSummary items={items} shippingCost={shippingCost} finalTotal={finalTotal} />
               </div>
             )}
 
@@ -235,7 +299,6 @@ export default function CheckoutPage() {
                     Contact
                   </h2>
                   <Field label="Email address" type="email" placeholder="you@example.com" value={form.email} onChange={set("email")} required />
-                  <p className="text-xs text-gray-400 mt-2">Order confirmation will be sent here.</p>
                 </div>
 
                 {/* Shipping address */}
@@ -278,136 +341,102 @@ export default function CheckoutPage() {
                         </select>
                       </div>
                     </div>
-                    <Field label="Phone (for delivery notifications)" type="tel" placeholder="+61 4xx xxx xxx" value={form.phone} onChange={set("phone")} />
+                    <Field label="Phone" type="tel" placeholder="+61 4xx xxx xxx" value={form.phone} onChange={set("phone")} />
                   </div>
+                </div>
+
+                {/* Shipping method */}
+                <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+                  <h2 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-gray-900 text-white text-[10px] font-bold flex items-center justify-center">3</span>
+                    Shipping Method
+                  </h2>
+                  <div className="flex flex-col gap-2">
+                    {[
+                      { value: "standard", icon: <Truck className="w-4 h-4 text-[#2a9d8f]" />, label: "Standard", eta: "5–8 business days", price: subtotal >= 60 ? "FREE" : "AU$9.95" },
+                      { value: "express", icon: <Zap className="w-4 h-4 text-orange-500" />, label: "Express", eta: "2–3 business days", price: "AU$14.95" },
+                    ].map(opt => {
+                      const active = form.shippingMethod === opt.value;
+                      return (
+                        <button
+                          key={opt.value}
+                          onClick={() => set("shippingMethod")(opt.value)}
+                          className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl border-2 transition-all text-left ${active ? "border-[#2a9d8f] bg-[#e8f5f4]" : "border-gray-200 hover:border-gray-300 bg-white"}`}
+                        >
+                          <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${active ? "border-[#2a9d8f]" : "border-gray-300"}`}>
+                            {active && <div className="w-2 h-2 rounded-full bg-[#2a9d8f]" />}
+                          </div>
+                          {opt.icon}
+                          <div className="flex-1 min-w-0">
+                            <span className="text-xs font-semibold text-gray-900">{opt.label}</span>
+                            <p className="text-[11px] text-gray-500">{opt.eta}</p>
+                          </div>
+                          <span className={`text-xs font-bold flex-shrink-0 ${opt.price === "FREE" ? "text-[#2a9d8f]" : "text-gray-900"}`}>{opt.price}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Payment */}
+                <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+                  <h2 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-gray-900 text-white text-[10px] font-bold flex items-center justify-center">4</span>
+                    Payment
+                  </h2>
+                  
+                  <div className="flex gap-4 mb-6">
+                    <button
+                      onClick={() => setPaymentMethod("card")}
+                      className={`flex-1 py-3 px-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${paymentMethod === 'card' ? 'border-[#2a9d8f] bg-[#e8f5f4]' : 'border-gray-100'}`}
+                    >
+                      <CreditCard className={`w-5 h-5 ${paymentMethod === 'card' ? 'text-[#2a9d8f]' : 'text-gray-400'}`} />
+                      <span className={`text-xs font-bold ${paymentMethod === 'card' ? 'text-[#2a9d8f]' : 'text-gray-500'}`}>Credit Card</span>
+                    </button>
+                    <button
+                      onClick={() => setPaymentMethod("paypal")}
+                      className={`flex-1 py-3 px-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${paymentMethod === 'paypal' ? 'border-[#2a9d8f] bg-[#e8f5f4]' : 'border-gray-100'}`}
+                    >
+                      <span className="text-xl">🅿️</span>
+                      <span className={`text-xs font-bold ${paymentMethod === 'paypal' ? 'text-[#2a9d8f]' : 'text-gray-500'}`}>PayPal</span>
+                    </button>
+                  </div>
+
+                  {paymentMethod === 'card' && (
+                    <div className="flex flex-col gap-4">
+                      <div className="p-4 border border-gray-200 rounded-xl bg-gray-50/50">
+                        <p className="text-xs text-gray-500 mb-2">Secure card payment via Stripe</p>
+                        {/* In real app: use <CardElement /> from Stripe */}
+                        <div className="h-10 bg-white border border-gray-200 rounded-lg flex items-center px-3 text-sm text-gray-400 italic">
+                          Stripe Card Element Placeholder
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {paymentMethod === 'paypal' && (
+                    <div className="p-4 border border-gray-200 rounded-xl bg-gray-50/50 text-center">
+                      <p className="text-xs text-gray-500 mb-4">You will be redirected to PayPal to complete your purchase.</p>
+                      <div className="h-10 bg-[#ffc439] rounded-lg flex items-center justify-center font-bold text-blue-900 italic">
+                        PayPal Checkout
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* ── Right: order summary + shipping + payment ──── */}
+              {/* ── Right: summary sidebar ── */}
               <div className="lg:col-span-2 flex flex-col gap-4">
                 <div className="lg:sticky lg:top-24 flex flex-col gap-4">
-                  <OrderSummary shippingCost={shippingCost} finalTotal={finalTotal} />
+                  <OrderSummary items={items} shippingCost={shippingCost} finalTotal={finalTotal} />
 
-                  {/* Shipping method */}
-                  <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm">
-                    <h2 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-gray-900 text-white text-[10px] font-bold flex items-center justify-center">3</span>
-                      Shipping Method
-                    </h2>
-                    <div className="flex flex-col gap-2">
-                      {[
-                        { value: "standard", icon: <Truck className="w-4 h-4 text-[#2a9d8f]" />, label: "Standard", eta: "5–8 business days", price: "FREE", badge: null },
-                        { value: "express", icon: <Zap className="w-4 h-4 text-orange-500" />, label: "Express", eta: "2–3 business days", price: "AU$14.95", badge: "Fastest" },
-                      ].map(opt => {
-                        const active = form.shippingMethod === opt.value;
-                        return (
-                          <button
-                            key={opt.value}
-                            onClick={() => set("shippingMethod")(opt.value)}
-                            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl border-2 transition-all text-left ${active ? "border-[#2a9d8f] bg-[#e8f5f4]" : "border-gray-200 hover:border-gray-300 bg-white"}`}
-                          >
-                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${active ? "border-[#2a9d8f]" : "border-gray-300"}`}>
-                              {active && <div className="w-2 h-2 rounded-full bg-[#2a9d8f]" />}
-                            </div>
-                            {opt.icon}
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-xs font-semibold text-gray-900">{opt.label}</span>
-                                {opt.badge && <span className="text-[9px] font-bold bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded-full">{opt.badge}</span>}
-                              </div>
-                              <p className="text-[11px] text-gray-500">{opt.eta}</p>
-                            </div>
-                            <span className={`text-xs font-bold flex-shrink-0 ${opt.price === "FREE" ? "text-[#2a9d8f]" : "text-gray-900"}`}>{opt.price}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Payment */}
-                  <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm">
-                    <h2 className="text-sm font-bold text-gray-900 mb-1 flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-gray-900 text-white text-[10px] font-bold flex items-center justify-center">4</span>
-                      Payment
-                    </h2>
-                    <p className="text-xs text-gray-400 mb-3 ml-7 flex items-center gap-1">
-                      <Shield className="w-3 h-3" /> Encrypted & secure
-                    </p>
-
-                    <div className="flex flex-col gap-2.5">
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-700 mb-1">Card number<span className="text-red-400 ml-0.5">*</span></label>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            placeholder="1234 5678 9012 3456"
-                            value={form.cardNumber}
-                            onChange={e => setForm(f => ({ ...f, cardNumber: formatCard(e.target.value) }))}
-                            className="w-full pl-3 pr-9 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#2a9d8f] font-mono tracking-wide"
-                          />
-                          <CreditCard className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />
-                        </div>
-                      </div>
-                      <Field label="Name on card" placeholder="Emily Johnson" value={form.cardName} onChange={set("cardName")} required />
-                      <div className="flex gap-2.5">
-                        <div className="flex-1 min-w-0">
-                          <label className="block text-xs font-semibold text-gray-700 mb-1">Expiry<span className="text-red-400 ml-0.5">*</span></label>
-                          <input
-                            type="text"
-                            placeholder="MM/YY"
-                            value={form.expiry}
-                            onChange={e => setForm(f => ({ ...f, expiry: formatExpiry(e.target.value) }))}
-                            className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#2a9d8f] font-mono"
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <label className="block text-xs font-semibold text-gray-700 mb-1">CVV<span className="text-red-400 ml-0.5">*</span></label>
-                          <input
-                            type="text"
-                            placeholder="•••"
-                            maxLength={4}
-                            value={form.cvv}
-                            onChange={e => setForm(f => ({ ...f, cvv: e.target.value.replace(/\D/g, "").slice(0, 4) }))}
-                            className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#2a9d8f] font-mono tracking-widest"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <label className="flex items-center gap-2.5 mt-3 cursor-pointer select-none">
-                      <div
-                        onClick={() => setForm(f => ({ ...f, sameAsShipping: !f.sameAsShipping }))}
-                        className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all cursor-pointer ${form.sameAsShipping ? "bg-[#2a9d8f] border-[#2a9d8f]" : "border-gray-300"}`}
-                      >
-                        {form.sameAsShipping && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
-                      </div>
-                      <span className="text-sm text-gray-700">Billing address same as shipping</span>
-                    </label>
-                  </div>
-
-                  {/* Place order */}
                   <button
-                    onClick={handlePlace}
-                    disabled={processing}
-                    className="w-full py-3.5 rounded-2xl bg-[#2a9d8f] hover:bg-[#21867a] disabled:opacity-70 text-white font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#2a9d8f]/25"
+                    onClick={() => handlePlace()}
+                    disabled={processing || items.length === 0}
+                    className="w-full py-4 rounded-2xl bg-[#2a9d8f] hover:bg-[#21867a] disabled:opacity-70 text-white font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#2a9d8f]/25"
                   >
-                    {processing ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                        Processing…
-                      </>
-                    ) : (
-                      <>
-                        <Lock className="w-4 h-4" /> Place Order · AU${finalTotal.toFixed(2)}
-                      </>
-                    )}
+                    {processing ? "Processing..." : `Place Order · AU$${finalTotal.toFixed(2)}`}
                   </button>
-
-                  <p className="text-center text-xs text-gray-400 leading-relaxed">
-                    By placing your order you agree to our{" "}
-                    <a href="#" className="text-[#2a9d8f] hover:underline">Terms of Service</a> and{" "}
-                    <a href="#" className="text-[#2a9d8f] hover:underline">Privacy Policy</a>.
-                  </p>
                 </div>
               </div>
             </div>

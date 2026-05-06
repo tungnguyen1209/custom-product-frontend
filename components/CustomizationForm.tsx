@@ -549,7 +549,10 @@ function deriveTemplateUuid(productResult: any): string {
   return "";
 }
 
+import { useCart } from "@/context/CartContext";
+
 export default function CustomizationForm({ productId }: { productId: string }) {
+  const { addItem } = useCart();
   const [options, setOptions] = useState<IOption[]>([]);
   const [ready, setReady] = useState(false);
   const [fetchError, setFetchError] = useState(false);
@@ -562,10 +565,27 @@ export default function CustomizationForm({ productId }: { productId: string }) 
   const [previewImageUrl, setPreviewImageUrl] = useState("");
   const [added, setAdded] = useState(false);
 
-  const handleAdd = useCallback(() => {
-    setAdded(true);
-    setTimeout(() => setAdded(false), 2500);
-  }, []);
+  const handleAdd = useCallback(async () => {
+    const customization: Record<string, any> = {};
+    options.forEach(opt => {
+      if (opt.currentValue) {
+        customization[opt.label] = opt.currentValue;
+      }
+    });
+
+    try {
+      await addItem({
+        productId: parseInt(productId),
+        productName: `Product ${productId}`, // Fallback if name not available
+        unitPrice: 37.00, // Hardcoded for demo
+        customization,
+      });
+      setAdded(true);
+      setTimeout(() => setAdded(false), 2500);
+    } catch (err) {
+      console.error('Failed to add to cart:', err);
+    }
+  }, [addItem, productId, options]);
 
   const handlePreviewRequest = useCallback(() => {
     window.dispatchEvent(new CustomEvent("wm-request-preview"));
