@@ -36,7 +36,7 @@ function PreviewModal({
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h3 className="text-lg font-bold text-gray-900">Personalization Preview</h3>
+          <h3 className="text-lg font-bold text-gray-900">Xem trước quà tặng</h3>
           <button
             onClick={onClose}
             className="p-2 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
@@ -52,7 +52,7 @@ function PreviewModal({
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={imageUrl}
-                alt="Personalization Preview"
+                alt="Xem trước cá nhân hóa"
                 className="max-w-full max-h-full object-contain"
               />
             </Zoom>
@@ -63,21 +63,21 @@ function PreviewModal({
             className={`w-full py-4 rounded-2xl font-bold text-base transition-all flex items-center justify-center gap-2 shadow-lg ${
               isAdded
                 ? "bg-green-500 text-white shadow-green-500/30"
-                : "bg-[#2a9d8f] hover:bg-[#21867a] text-white shadow-[#2a9d8f]/30"
+                : "bg-[#ff6b6b] hover:bg-[#ee5253] text-white shadow-[#ff6b6b]/30"
             }`}
           >
             {isAdded ? (
               <>
-                <CheckCircle className="w-6 h-6" /> Added to Cart!
+                <CheckCircle className="w-6 h-6" /> Đã thêm vào giỏ!
               </>
             ) : (
               <>
-                <ShoppingCart className="w-6 h-6" /> Add to Cart
+                <ShoppingCart className="w-6 h-6" /> Thêm vào giỏ hàng
               </>
             )}
           </button>
-          <p className="text-center text-xs text-gray-400 mt-4">
-            * This is a digital preview. Final product colors may vary slightly.
+          <p className="text-center text-[10px] text-gray-400 mt-4 leading-relaxed">
+            * Đây là bản xem trước kỹ thuật số. Màu sắc sản phẩm thực tế có thể hơi khác biệt so với màn hình.
           </p>
         </div>
       </div>
@@ -135,54 +135,17 @@ function SwatchOption({
   const selected = values.find((v) => v.id === option.currentValue);
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2.5">
       {/* Label row */}
-      <div className="flex items-center gap-1.5">
-        <span className="text-sm font-semibold text-gray-800">{option.label}:</span>
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-bold text-gray-800">{option.label}:</span>
         {selected && (
-          <span className="text-sm text-gray-500">{selected.valueName}</span>
+          <span className="text-sm text-gray-500 font-medium">{selected.valueName}</span>
         )}
       </div>
 
       {hasImages ? (
         /* Image swatches – compact scrollable row */
-        <div className="flex flex-wrap gap-1.5">
-          {values.map((val) => {
-            const isActive = val.id === option.currentValue;
-            const isLoading = loadingValueId === val.id;
-            return (
-              <button
-                key={val.id}
-                onClick={() => !loadingValueId && onSelect(val)}
-                title={val.valueName}
-                disabled={!!loadingValueId}
-                className={`relative flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden bg-gray-50 transition-all focus:outline-none ${
-                  isActive
-                    ? "ring-2 ring-[#2a9d8f] ring-offset-1"
-                    : "ring-1 ring-gray-200 hover:ring-[#2a9d8f] opacity-80 hover:opacity-100"
-                }`}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={val.thumbImage}
-                  alt={val.valueName}
-                  className="w-full h-full object-contain p-0.5"
-                />
-                {isLoading ? (
-                  <span className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 bg-[#2a9d8f] rounded-full flex items-center justify-center">
-                    <Loader2 className="w-2 h-2 text-white animate-spin" />
-                  </span>
-                ) : isActive ? (
-                  <span className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 bg-[#2a9d8f] rounded-full flex items-center justify-center">
-                    <Check className="w-2 h-2 text-white" strokeWidth={3} />
-                  </span>
-                ) : null}
-              </button>
-            );
-          })}
-        </div>
-      ) : (
-        /* Color dot swatches */
         <div className="flex flex-wrap gap-2">
           {values.map((val) => {
             const isActive = val.id === option.currentValue;
@@ -193,21 +156,58 @@ function SwatchOption({
                 onClick={() => !loadingValueId && onSelect(val)}
                 title={val.valueName}
                 disabled={!!loadingValueId}
-                style={{ backgroundColor: val.thumbColor || "#ccc" }}
-                className={`relative w-7 h-7 rounded-full border-2 border-white transition-all focus:outline-none shadow-sm ${
+                className={`relative flex-shrink-0 w-14 h-14 rounded-xl overflow-hidden bg-gray-50 transition-all focus:outline-none ${
                   isActive
-                    ? "ring-2 ring-offset-1 ring-[#2a9d8f] scale-110"
+                    ? "ring-2 ring-[#ff6b6b] ring-offset-2"
+                    : "ring-1 ring-gray-200 hover:ring-[#ff6b6b] opacity-90 hover:opacity-100"
+                }`}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={val.thumbImage}
+                  alt={val.valueName}
+                  className="w-full h-full object-contain p-0.5"
+                />
+                {isLoading ? (
+                  <span className="absolute bottom-0.5 right-0.5 w-4 h-4 bg-[#ff6b6b] rounded-full flex items-center justify-center">
+                    <Loader2 className="w-2.5 h-2.5 text-white animate-spin" />
+                  </span>
+                ) : isActive ? (
+                  <span className="absolute bottom-0.5 right-0.5 w-4 h-4 bg-[#ff6b6b] rounded-full flex items-center justify-center shadow-sm">
+                    <Check className="w-2.5 h-2.5 text-white" strokeWidth={4} />
+                  </span>
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        /* Color dot swatches */
+        <div className="flex flex-wrap gap-2.5">
+          {values.map((val) => {
+            const isActive = val.id === option.currentValue;
+            const isLoading = loadingValueId === val.id;
+            return (
+              <button
+                key={val.id}
+                onClick={() => !loadingValueId && onSelect(val)}
+                title={val.valueName}
+                disabled={!!loadingValueId}
+                style={{ backgroundColor: val.thumbColor || "#ccc" }}
+                className={`relative w-8 h-8 rounded-full border-2 border-white transition-all focus:outline-none shadow-sm ${
+                  isActive
+                    ? "ring-2 ring-offset-2 ring-[#ff6b6b] scale-110"
                     : "hover:scale-110 hover:ring-2 hover:ring-offset-1 hover:ring-gray-300"
                 }`}
               >
                 {isLoading ? (
                   <Loader2
-                    className="absolute inset-0 m-auto w-3 h-3 text-white drop-shadow-sm animate-spin"
+                    className="absolute inset-0 m-auto w-4 h-4 text-white drop-shadow-sm animate-spin"
                   />
                 ) : isActive ? (
                   <Check
-                    className="absolute inset-0 m-auto w-3 h-3 text-white drop-shadow-sm"
-                    strokeWidth={3}
+                    className="absolute inset-0 m-auto w-4 h-4 text-white drop-shadow-sm"
+                    strokeWidth={4}
                   />
                 ) : null}
               </button>
@@ -233,8 +233,8 @@ function DropdownOption({
   const values = option.dropdownValues ?? [];
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-sm font-semibold text-gray-800">
+    <div className="flex flex-col gap-2">
+      <label className="text-sm font-bold text-gray-800">
         {option.label}
       </label>
       <div className="relative">
@@ -245,9 +245,9 @@ function DropdownOption({
             const chosen = values.find((v) => typeof v.id !== 'undefined' ? String(v.id) == e.target.value : v.valueName == e.target.value);
             if (chosen) onSelect(chosen);
           }}
-          className="w-full px-4 py-2.5 pr-9 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#2a9d8f] focus:border-transparent bg-white appearance-none cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+          className="w-full px-4 py-3 pr-10 rounded-xl border border-gray-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ff6b6b]/20 focus:border-[#ff6b6b] bg-white appearance-none cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed transition-all"
         >
-          <option value="">— Select {option.label} —</option>
+          <option value="">— Chọn {option.label} —</option>
           {values.map((val) => (
             <option key={typeof val.id !== 'undefined' ? val.id : val.valueName} value={typeof val.id !== 'undefined' ? val.id : val.valueName}>
               {val.valueName}
@@ -255,9 +255,9 @@ function DropdownOption({
           ))}
         </select>
         {isLoading ? (
-          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#2a9d8f] animate-spin pointer-events-none" />
+          <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#ff6b6b] animate-spin pointer-events-none" />
         ) : (
-          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+          <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
         )}
       </div>
     </div>
@@ -274,12 +274,12 @@ function TextInputOption({
   onChange: (val: string) => void;
 }) {
   const maxLen = option.config?.maxLength ?? 100;
-  const placeholder = option.config?.placeholder ?? "";
+  const placeholder = option.config?.placeholder ?? "Nhập nội dung...";
   const value = String(option.currentValue ?? "");
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-sm font-semibold text-gray-800">
+    <div className="flex flex-col gap-2">
+      <label className="text-sm font-bold text-gray-800">
         {option.label}
       </label>
       <div className="relative">
@@ -290,13 +290,13 @@ function TextInputOption({
           }
           placeholder={placeholder}
           maxLength={maxLen}
-          rows={maxLen > 60 ? 5 : 1}
-          className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#2a9d8f] focus:border-transparent resize-none placeholder:text-gray-400"
-          style={{ minHeight: maxLen > 60 ? undefined : "42px" }}
+          rows={maxLen > 60 ? 4 : 1}
+          className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ff6b6b]/20 focus:border-[#ff6b6b] bg-white resize-none placeholder:text-gray-400 transition-all"
+          style={{ minHeight: maxLen > 60 ? undefined : "48px" }}
         />
         <span
-          className={`absolute bottom-2.5 right-3 text-xs pointer-events-none ${
-            value.length >= maxLen * 0.9 ? "text-orange-400" : "text-gray-300"
+          className={`absolute bottom-3 right-4 text-[10px] font-bold pointer-events-none ${
+            value.length >= maxLen * 0.9 ? "text-orange-500" : "text-gray-300"
           }`}
         >
           {value.length}/{maxLen}
@@ -346,37 +346,37 @@ function ImageUploadOption({
   };
 
   const helpText =
-    option.config?.helpText ?? "Upload a photo for your personalised design";
-  const buttonText = option.config?.buttonText ?? "Choose photo";
+    option.config?.helpText ?? "Tải lên ảnh của bạn để thiết kế quà tặng";
+  const buttonText = option.config?.buttonText ?? "Chọn ảnh từ máy";
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-sm font-semibold text-gray-800">
+    <div className="flex flex-col gap-2">
+      <label className="text-sm font-bold text-gray-800">
         {option.label}
       </label>
-      {helpText && <p className="text-xs text-gray-400 -mt-1">{helpText}</p>}
+      {helpText && <p className="text-[11px] text-gray-400 -mt-1">{helpText}</p>}
 
       {preview ? (
-        <div className="flex items-center gap-3 p-3 rounded-xl border-2 border-[#2a9d8f] bg-[#e8f5f4]">
+        <div className="flex items-center gap-4 p-4 rounded-xl border-2 border-[#ff6b6b] bg-[#fff0f0]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={preview.dataUrl}
             alt="preview"
-            className="w-14 h-14 object-cover rounded-lg flex-shrink-0"
+            className="w-16 h-16 object-cover rounded-lg flex-shrink-0 shadow-sm"
           />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-800 truncate">
+            <p className="text-sm font-bold text-gray-800 truncate">
               {preview.name}
             </p>
-            <p className="text-xs text-[#2a9d8f] mt-0.5">Uploaded ✓</p>
+            <p className="text-[11px] font-bold text-[#ff6b6b] mt-0.5 uppercase tracking-wider">Đã tải lên ✓</p>
             <button
               onClick={() => {
                 setPreview(null);
                 onUpload("");
               }}
-              className="mt-1 text-xs text-gray-400 hover:text-red-500 flex items-center gap-1 transition-colors"
+              className="mt-2 text-xs text-gray-400 hover:text-[#ff6b6b] flex items-center gap-1.5 font-bold transition-colors"
             >
-              <X className="w-3 h-3" /> Remove
+              <X className="w-3.5 h-3.5" /> Xóa ảnh
             </button>
           </div>
         </div>
@@ -389,25 +389,25 @@ function ImageUploadOption({
           onDragLeave={() => setDragging(false)}
           onDrop={onDrop}
           onClick={() => inputRef.current?.click()}
-          className={`flex flex-col items-center justify-center gap-2 py-6 px-4 rounded-xl border-2 border-dashed cursor-pointer transition-all ${
+          className={`flex flex-col items-center justify-center gap-2.5 py-8 px-5 rounded-2xl border-2 border-dashed cursor-pointer transition-all ${
             dragging
-              ? "border-[#2a9d8f] bg-[#e8f5f4]"
-              : "border-gray-200 hover:border-[#2a9d8f] hover:bg-gray-50"
+              ? "border-[#ff6b6b] bg-[#fff0f0]"
+              : "border-gray-200 hover:border-[#ff6b6b] hover:bg-gray-50/50"
           }`}
         >
-          <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
-            <ImagePlus className="w-5 h-5 text-gray-400" />
+          <div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center">
+            <ImagePlus className="w-6 h-6 text-gray-400" />
           </div>
           <div className="text-center">
-            <p className="text-sm font-medium text-gray-700">
-              {dragging ? "Drop here" : buttonText}
+            <p className="text-sm font-bold text-gray-700">
+              {dragging ? "Thả ảnh vào đây" : buttonText}
             </p>
-            <p className="text-xs text-gray-400 mt-0.5">
-              JPG, PNG, WEBP · max 10 MB
+            <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-tight">
+              JPG, PNG, WEBP · Tối đa 10 MB
             </p>
           </div>
-          <span className="text-xs text-[#2a9d8f] flex items-center gap-1 font-medium">
-            <Upload className="w-3 h-3" /> Browse files
+          <span className="text-xs text-[#ff6b6b] flex items-center gap-1.5 font-bold mt-1">
+            <Upload className="w-3.5 h-3.5" /> Duyệt từ thư viện
           </span>
           <input
             ref={inputRef}
@@ -440,15 +440,15 @@ function CartStrip({
   const [wishlisted, setWishlisted] = useState(false);
 
   return (
-    <div className="flex flex-col gap-4 pt-1">
+    <div className="flex flex-col gap-6 pt-2">
       {/* Quantity */}
-      <div className="flex flex-col gap-1.5">
-        <label className="text-sm font-semibold text-gray-800">Quantity</label>
+      <div className="flex flex-col gap-2">
+        <label className="text-sm font-bold text-gray-800">Số lượng</label>
         <div className="flex items-center">
           <button
             onClick={() => setQty((q) => Math.max(1, q - 1))}
             disabled={qty <= 1}
-            className="w-10 h-10 flex items-center justify-center rounded-l-xl border border-gray-200 hover:bg-gray-50 transition-colors text-gray-600 disabled:opacity-40"
+            className="w-12 h-12 flex items-center justify-center rounded-l-xl border border-gray-200 hover:bg-gray-50 transition-colors text-gray-600 disabled:opacity-40"
           >
             <Minus className="w-4 h-4" />
           </button>
@@ -460,11 +460,11 @@ function CartStrip({
             onChange={(e) =>
               setQty(Math.max(1, Math.min(99, Number(e.target.value))))
             }
-            className="w-14 h-10 text-center border-t border-b border-gray-200 text-sm font-semibold focus:outline-none"
+            className="w-16 h-12 text-center border-t border-b border-gray-200 text-sm font-bold focus:outline-none bg-white"
           />
           <button
             onClick={() => setQty((q) => Math.min(99, q + 1))}
-            className="w-10 h-10 flex items-center justify-center rounded-r-xl border border-gray-200 hover:bg-gray-50 transition-colors text-gray-600"
+            className="w-12 h-12 flex items-center justify-center rounded-r-xl border border-gray-200 hover:bg-gray-50 transition-colors text-gray-600"
           >
             <Plus className="w-4 h-4" />
           </button>
@@ -472,46 +472,46 @@ function CartStrip({
       </div>
 
       {/* CTA buttons */}
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-4">
         <button
           onClick={onPreview}
-          className="w-full py-3.5 rounded-2xl font-semibold text-sm bg-white hover:bg-gray-50 text-gray-900 transition-all flex items-center justify-center gap-2 border-2 border-gray-200"
+          className="w-full py-4 rounded-2xl font-bold text-sm bg-white hover:bg-gray-50 text-gray-900 transition-all flex items-center justify-center gap-2.5 border-2 border-gray-100 shadow-sm"
         >
-          <Eye className="w-5 h-5 text-[#2a9d8f]" /> Preview Your Personalization
+          <Eye className="w-5 h-5 text-[#ff6b6b]" /> Xem trước thiết kế của bạn
         </button>
         <button
           onClick={onAdd}
-          className={`w-full py-3.5 rounded-2xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
+          className={`w-full py-4 rounded-2xl font-bold text-sm transition-all flex items-center justify-center gap-2.5 shadow-lg shadow-[#ff6b6b]/20 ${
             added
-              ? "bg-green-500 text-white"
-              : "bg-[#2a9d8f] hover:bg-[#21867a] text-white shadow-md shadow-[#2a9d8f]/30"
+              ? "bg-green-500 text-white shadow-green-500/20"
+              : "bg-[#ff6b6b] hover:bg-[#ee5253] text-white"
           }`}
         >
           {added ? (
             <>
-              <CheckCircle className="w-5 h-5" /> Added to Cart!
+              <CheckCircle className="w-5 h-5" /> Đã thêm vào giỏ!
             </>
           ) : (
             <>
-              <ShoppingCart className="w-5 h-5" /> Add to Cart
+              <ShoppingCart className="w-5 h-5" /> Thêm vào giỏ hàng
             </>
           )}
         </button>
       </div>
 
       {/* Wishlist / share */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-6">
         <button
           onClick={() => setWishlisted(!wishlisted)}
-          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-red-500 transition-colors"
+          className="flex items-center gap-2 text-[13px] font-bold text-gray-500 hover:text-[#ff6b6b] transition-colors"
         >
           <Heart
-            className={`w-4 h-4 ${wishlisted ? "fill-red-500 text-red-500" : ""}`}
+            className={`w-4 h-4 ${wishlisted ? "fill-[#ff6b6b] text-[#ff6b6b]" : ""}`}
           />
-          {wishlisted ? "Saved" : "Add to Wishlist"}
+          {wishlisted ? "Đã lưu" : "Yêu thích"}
         </button>
-        <button className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#2a9d8f] transition-colors">
-          <Share2 className="w-4 h-4" /> Share
+        <button className="flex items-center gap-2 text-[13px] font-bold text-gray-500 hover:text-[#ff6b6b] transition-colors">
+          <Share2 className="w-4 h-4" /> Chia sẻ
         </button>
       </div>
     </div>
@@ -576,8 +576,8 @@ export default function CustomizationForm({ productId }: { productId: string }) 
     try {
       await addItem({
         productId: parseInt(productId),
-        productName: `Product ${productId}`, // Fallback if name not available
-        unitPrice: 37.00, // Hardcoded for demo
+        productName: `Gối tựa lưng cá nhân hóa`,
+        unitPrice: 450000,
         customization,
       });
       setAdded(true);
@@ -732,22 +732,22 @@ export default function CustomizationForm({ productId }: { productId: string }) 
   /* Loading / error state */
   if (!ready) {
     return (
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center gap-2 bg-[#e8f5f4] border border-[#2a9d8f]/30 rounded-xl px-4 py-3">
-          <Gift className="w-5 h-5 text-[#2a9d8f] flex-shrink-0" />
-          <p className="text-sm text-[#1a6b61] font-medium">
-            Complimentary gift box included with every order
+      <div className="flex flex-col gap-5">
+        <div className="flex items-center gap-3 bg-[#fff0f0] border border-[#ff6b6b]/20 rounded-2xl px-5 py-4 shadow-sm">
+          <Gift className="w-5 h-5 text-[#ff6b6b] flex-shrink-0" />
+          <p className="text-[13px] text-[#ee5253] font-bold">
+            Miễn phí hộp quà tặng cao cấp đi kèm mọi đơn hàng
           </p>
         </div>
 
         {fetchError ? (
-          <p className="text-sm text-red-400 px-1">
-            Could not load customization options. Please refresh.
+          <p className="text-sm text-red-500 font-bold px-1">
+            Không thể tải các tùy chọn thiết kế. Vui lòng làm mới trang.
           </p>
         ) : (
-          <div className="flex items-center gap-3 py-6 text-gray-400 text-sm">
-            <Loader2 className="w-5 h-5 animate-spin" />
-            Loading customization options…
+          <div className="flex items-center gap-4 py-8 text-gray-400 text-sm font-bold">
+            <Loader2 className="w-6 h-6 animate-spin text-[#ff6b6b]" />
+            Đang tải các tùy chọn thiết kế...
           </div>
         )}
 
@@ -757,17 +757,17 @@ export default function CustomizationForm({ productId }: { productId: string }) 
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
       {/* Gift box badge */}
-      <div className="flex items-center gap-2 bg-[#e8f5f4] border border-[#2a9d8f]/30 rounded-xl px-4 py-3">
-        <Gift className="w-5 h-5 text-[#2a9d8f] flex-shrink-0" />
-        <p className="text-sm text-[#1a6b61] font-medium">
-          Complimentary gift box included with every order
+      <div className="flex items-center gap-3 bg-[#fff0f0] border border-[#ff6b6b]/20 rounded-2xl px-5 py-4 shadow-sm">
+        <Gift className="w-5 h-5 text-[#ff6b6b] flex-shrink-0" />
+        <p className="text-[13px] text-[#ee5253] font-bold">
+          Miễn phí hộp quà tặng cao cấp đi kèm mọi đơn hàng
         </p>
       </div>
 
       {/* Dynamic options */}
-      <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-6">
         {visibleOptions.map((option) => {
           if (option.type === "swatch") {
             const prefix = `${option.id}:`;

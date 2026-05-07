@@ -1,86 +1,56 @@
-import { Globe, Link2, X, Music2 } from "lucide-react";
+import { Globe, Instagram, Facebook, Twitter, Gift } from "lucide-react";
 
 const links = {
-  Help: ["FAQ", "Shipping Info", "Returns & Exchanges", "Track My Order", "Contact Us"],
-  Company: ["About Callie", "Careers", "Press", "Sustainability", "Affiliates"],
-  Shop: ["Graduation", "Wedding", "Birthday", "Baby Gifts", "Mother's Day"],
+  "Chăm sóc khách hàng": ["Trung tâm trợ giúp", "Thông tin vận chuyển", "Chính sách đổi trả", "Theo dõi đơn hàng", "Liên hệ"],
+  "Về Gifthub": ["Câu chuyện thương hiệu", "Tuyển dụng", "Báo chí", "Phát triển bền vững", "Đối tác"],
+  "Khám phá": ["Quà tặng gia đình", "Quà tặng bạn bè", "Quà tặng thú cưng", "Kỷ niệm ngày cưới", "Quà sinh nhật"],
 };
 
 const paymentIcons = ["💳", "🔒", "✅"];
 
 export default function Footer() {
   return (
-    <footer className="bg-gray-900 text-gray-300 pt-12 pb-6 mt-auto">
+    <footer className="bg-[#2d3436] text-gray-300 pt-16 pb-8 mt-auto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-8 mb-10">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-12 mb-12">
           {/* Brand column */}
           <div className="col-span-2 md:col-span-2">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-full bg-[#2a9d8f] flex items-center justify-center">
-                <span className="text-white font-bold text-sm">C</span>
+            <div className="flex items-center gap-2 mb-6">
+              <div className="w-10 h-10 rounded-xl bg-[#ff6b6b] flex items-center justify-center">
+                <Gift className="text-white w-6 h-6" />
               </div>
-              <span className="text-xl font-bold text-white">callie</span>
+              <span className="text-2xl font-bold text-white tracking-tight">
+                Gift<span className="text-[#ff6b6b]">hub</span>
+              </span>
             </div>
-            <p className="text-sm text-gray-400 leading-relaxed mb-5 max-w-xs">
-              Personalised gifts crafted with heart. Making every milestone
-              unforgettable since 2018.
+            <p className="text-sm text-gray-400 leading-relaxed mb-6 max-w-xs">
+              Mỗi món quà là một câu chuyện. Gifthub giúp bạn gửi gắm yêu thương qua những sản phẩm cá nhân hóa độc đáo nhất.
             </p>
-            <div className="flex items-center gap-3 mb-6">
-              {[Globe, Link2, X, Music2].map((Icon, i) => (
+            <div className="flex items-center gap-4 mb-8">
+              {[Instagram, Facebook, Twitter, Globe].map((Icon, i) => (
                 <a
                   key={i}
                   href="#"
-                  className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 hover:bg-[#2a9d8f] hover:text-white transition-all"
+                  className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 hover:bg-[#ff6b6b] hover:text-white transition-all duration-300"
                 >
-                  <Icon className="w-4 h-4" />
+                  <Icon className="w-5 h-5" />
                 </a>
               ))}
-            </div>
-            {/* App download */}
-            <div className="flex gap-2">
-              <a
-                href="#"
-                className="flex items-center gap-1.5 bg-gray-800 hover:bg-gray-700 rounded-xl px-3 py-2 transition-colors"
-              >
-                <span className="text-lg">📱</span>
-                <div>
-                  <p className="text-[9px] text-gray-400 leading-tight">
-                    Download on the
-                  </p>
-                  <p className="text-xs font-semibold text-white leading-tight">
-                    App Store
-                  </p>
-                </div>
-              </a>
-              <a
-                href="#"
-                className="flex items-center gap-1.5 bg-gray-800 hover:bg-gray-700 rounded-xl px-3 py-2 transition-colors"
-              >
-                <span className="text-lg">🤖</span>
-                <div>
-                  <p className="text-[9px] text-gray-400 leading-tight">
-                    Get it on
-                  </p>
-                  <p className="text-xs font-semibold text-white leading-tight">
-                    Google Play
-                  </p>
-                </div>
-              </a>
             </div>
           </div>
 
           {/* Link columns */}
           {Object.entries(links).map(([heading, items]) => (
             <div key={heading}>
-              <h4 className="text-sm font-semibold text-white mb-4">
+              <h4 className="text-sm font-bold text-white mb-6 uppercase tracking-wider">
                 {heading}
               </h4>
-              <ul className="space-y-2.5">
+              <ul className="space-y-3.5">
                 {items.map((item) => (
                   <li key={item}>
                     <a
                       href="#"
-                      className="text-sm text-gray-400 hover:text-[#2a9d8f] transition-colors"
+                      className="text-[13px] text-gray-400 hover:text-[#ff6b6b] transition-colors"
                     >
                       {item}
                     </a>
@@ -92,31 +62,31 @@ export default function Footer() {
         </div>
 
         {/* Bottom row */}
-        <div className="border-t border-gray-800 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row items-center justify-between gap-6">
           <p className="text-xs text-gray-500">
-            © 2026 Callie Pty Ltd. All rights reserved. ABN 12 345 678 901
+            © 2026 Gifthub Inc. Every gift tells a story.
           </p>
-          <div className="flex items-center gap-4 text-xs text-gray-500">
-            <a href="#" className="hover:text-gray-300 transition-colors">
-              Privacy Policy
+          <div className="flex items-center gap-6 text-xs text-gray-500">
+            <a href="#" className="hover:text-white transition-colors">
+              Chính sách bảo mật
             </a>
-            <a href="#" className="hover:text-gray-300 transition-colors">
-              Terms of Service
+            <a href="#" className="hover:text-white transition-colors">
+              Điều khoản dịch vụ
             </a>
-            <a href="#" className="hover:text-gray-300 transition-colors">
-              Cookie Settings
+            <a href="#" className="hover:text-white transition-colors">
+              Cài đặt Cookie
             </a>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {paymentIcons.map((icon, i) => (
               <span
                 key={i}
-                className="w-10 h-6 bg-gray-800 rounded flex items-center justify-center text-sm"
+                className="w-12 h-8 bg-gray-800 rounded-lg flex items-center justify-center text-base border border-gray-700"
               >
                 {icon}
               </span>
             ))}
-            <span className="text-xs text-gray-500 ml-1">Secure checkout</span>
+            <span className="text-[10px] text-gray-500 ml-1 font-medium uppercase tracking-tighter">Secure Payment</span>
           </div>
         </div>
       </div>

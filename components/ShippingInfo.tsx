@@ -6,23 +6,23 @@ import { Truck, Clock, RefreshCw, ChevronDown, ChevronUp, Package } from "lucide
 const shippingOptions = [
   {
     id: "standard",
-    name: "Standard Shipping",
-    days: "10–12 business days",
-    price: "AU$6.00",
+    name: "Giao hàng tiêu chuẩn",
+    days: "10–12 ngày làm việc",
+    price: "35.000đ",
     icon: "📦",
   },
   {
     id: "express",
-    name: "Express Shipping",
-    days: "6–8 business days",
-    price: "AU$18.00",
+    name: "Giao hàng nhanh",
+    days: "6–8 ngày làm việc",
+    price: "55.000đ",
     icon: "🚀",
   },
   {
     id: "urgent",
-    name: "Urgent Shipping",
-    days: "4–6 business days",
-    price: "AU$36.00",
+    name: "Giao hàng hỏa tốc",
+    days: "4–6 ngày làm việc",
+    price: "120.000đ",
     icon: "⚡",
   },
 ];
@@ -31,34 +31,34 @@ export default function ShippingInfo() {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="border border-gray-100 rounded-2xl overflow-hidden">
+    <div className="border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
       {/* Trust badges row */}
-      <div className="grid grid-cols-3 divide-x divide-gray-100 bg-gray-50">
-        <div className="flex flex-col items-center gap-1 py-4 px-2 text-center">
-          <Truck className="w-5 h-5 text-[#2a9d8f]" />
-          <span className="text-xs font-semibold text-gray-700">Free Shipping</span>
-          <span className="text-[10px] text-gray-400">Orders over AU$60</span>
+      <div className="grid grid-cols-3 divide-x divide-gray-100 bg-gray-50/50">
+        <div className="flex flex-col items-center gap-1.5 py-5 px-2 text-center">
+          <Truck className="w-5 h-5 text-[#ff6b6b]" />
+          <span className="text-[11px] font-bold text-gray-700 uppercase tracking-tight">Miễn phí ship</span>
+          <span className="text-[10px] text-gray-400">Đơn từ 500k</span>
         </div>
-        <div className="flex flex-col items-center gap-1 py-4 px-2 text-center">
-          <RefreshCw className="w-5 h-5 text-[#2a9d8f]" />
-          <span className="text-xs font-semibold text-gray-700">99-Day Returns</span>
-          <span className="text-[10px] text-gray-400">Hassle-free policy</span>
+        <div className="flex flex-col items-center gap-1.5 py-5 px-2 text-center">
+          <RefreshCw className="w-5 h-5 text-[#ff6b6b]" />
+          <span className="text-[11px] font-bold text-gray-700 uppercase tracking-tight">Đổi trả 30 ngày</span>
+          <span className="text-[10px] text-gray-400">Yên tâm mua sắm</span>
         </div>
-        <div className="flex flex-col items-center gap-1 py-4 px-2 text-center">
-          <Package className="w-5 h-5 text-[#2a9d8f]" />
-          <span className="text-xs font-semibold text-gray-700">Gift Box</span>
-          <span className="text-[10px] text-gray-400">Always included</span>
+        <div className="flex flex-col items-center gap-1.5 py-5 px-2 text-center">
+          <Package className="w-5 h-5 text-[#ff6b6b]" />
+          <span className="text-[11px] font-bold text-gray-700 uppercase tracking-tight">Hộp quà cao cấp</span>
+          <span className="text-[10px] text-gray-400">Luôn đi kèm</span>
         </div>
       </div>
 
       {/* Shipping options toggle */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+        className="w-full flex items-center justify-between px-5 py-4 text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors"
       >
-        <div className="flex items-center gap-2">
-          <Clock className="w-4 h-4 text-[#2a9d8f]" />
-          View shipping options
+        <div className="flex items-center gap-2.5">
+          <Clock className="w-4 h-4 text-[#ff6b6b]" />
+          Xem các tùy chọn vận chuyển
         </div>
         {expanded ? (
           <ChevronUp className="w-4 h-4 text-gray-400" />
@@ -72,22 +72,21 @@ export default function ShippingInfo() {
           {shippingOptions.map((opt) => (
             <div
               key={opt.id}
-              className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors"
             >
-              <span className="text-xl">{opt.icon}</span>
+              <span className="text-2xl">{opt.icon}</span>
               <div className="flex-1">
-                <p className="text-sm font-medium text-gray-800">{opt.name}</p>
+                <p className="text-sm font-bold text-gray-800">{opt.name}</p>
                 <p className="text-xs text-gray-500">{opt.days}</p>
               </div>
-              <span className="text-sm font-semibold text-gray-800">
+              <span className="text-sm font-black text-gray-900">
                 {opt.price}
               </span>
             </div>
           ))}
-          <div className="px-4 py-3 bg-[#e8f5f4]">
-            <p className="text-xs text-[#1a6b61]">
-              🎓 Order by <strong>30 May 2026</strong> to receive before most
-              graduation ceremonies.
+          <div className="px-5 py-4 bg-[#fff0f0]">
+            <p className="text-[11px] text-[#ee5253] leading-relaxed">
+              💝 Đặt hàng trước ngày <strong>20/05/2026</strong> để đảm bảo nhận quà đúng dịp Ngày Của Cha.
             </p>
           </div>
         </div>

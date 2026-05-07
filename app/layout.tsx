@@ -9,9 +9,9 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "Personalised Grad Cap Graduation Sash | Callie",
+  title: "Gifthub | Personalized Gifts for Your Loved Ones",
   description:
-    "Personalised Grad Cap Cartoon Character Graduation Sash with Name and Year - Graduation Keepsake Gift for Graduates",
+    "Discover unique, personalized gifts for family, friends, and pets at Gifthub. Custom designs that tell your story.",
 };
 
 export default function RootLayout({

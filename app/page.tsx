@@ -17,71 +17,73 @@ export default function ProductPage() {
 
       <main className="flex-1">
         {/* Breadcrumb */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-          <nav className="flex items-center gap-1 text-xs text-gray-400 flex-wrap">
-            {["Home", "Graduation", "Sashes & Accessories"].map((crumb, i) => (
-              <span key={crumb} className="flex items-center gap-1">
-                {i > 0 && <ChevronRight className="w-3 h-3" />}
-                <a href="#" className="hover:text-[#2a9d8f] transition-colors">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <nav className="flex items-center gap-2 text-xs text-gray-400 flex-wrap">
+            {["Gifthub", "Quà tặng gia đình", "Trang trí nhà cửa"].map((crumb, i) => (
+              <span key={crumb} className="flex items-center gap-2">
+                {i > 0 && <ChevronRight className="w-3 h-3 opacity-50" />}
+                <a href="#" className="hover:text-[#ff6b6b] transition-colors font-medium">
                   {crumb}
                 </a>
               </span>
             ))}
-            <span className="flex items-center gap-1 text-gray-600">
-              <ChevronRight className="w-3 h-3" />
+            <span className="flex items-center gap-2 text-gray-600 font-semibold">
+              <ChevronRight className="w-3 h-3 opacity-50" />
               <span className="truncate max-w-[200px]">
-                Personalised Grad Cap Sash
+                Gối tựa lưng cá nhân hóa
               </span>
             </span>
           </nav>
         </div>
 
         {/* Product section */}
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 xl:gap-16">
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 xl:gap-20">
             {/* Left – Gallery */}
-            <StickyPreviewWrapper className="lg:sticky lg:top-24 lg:self-start">
+            <StickyPreviewWrapper className="lg:sticky lg:top-28 lg:self-start">
               <TemplatePreviewLoader />
             </StickyPreviewWrapper>
 
             {/* Right – Product info */}
-            <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-8">
               {/* Category tag */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs font-semibold text-[#2a9d8f] bg-[#e8f5f4] px-3 py-1 rounded-full">
-                  🎓 Graduation Gifts
+              <div className="flex items-center gap-3 flex-wrap">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#ff6b6b] bg-[#fff0f0] px-4 py-1.5 rounded-full border border-[#ff6b6b]/10">
+                  💝 Quà tặng ý nghĩa
                 </span>
-                <span className="text-xs font-semibold text-orange-600 bg-orange-50 px-3 py-1 rounded-full">
-                  🔥 Popular — 48 sold this week
+                <span className="text-[11px] font-bold uppercase tracking-wider text-orange-600 bg-orange-50 px-4 py-1.5 rounded-full border border-orange-100">
+                  🔥 Đang hot — 128 người đã mua tuần này
                 </span>
               </div>
 
               {/* Title */}
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 leading-snug">
-                Personalised Grad Cap Cartoon Character Graduation Sash with
-                Name and Year — Graduation Keepsake Gift for Class of 2026
-                Graduates
+              <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 leading-tight">
+                Gối Tựa Lưng In Hình Thành Viên Gia Đình Cá Nhân Hóa — Món Quà Ấm Áp Cho Tổ Ấm Của Bạn
               </h1>
 
               {/* Rating */}
-              <div className="flex items-center gap-3 flex-wrap">
-                <StarRating rating={4.8} count={9} size="md" />
-                <span className="text-sm text-[#2a9d8f] font-medium hover:underline cursor-pointer">
-                  See all reviews
+              <div className="flex items-center gap-4 flex-wrap">
+                <StarRating rating={4.9} count={24} size="md" />
+                <span className="text-sm text-[#ff6b6b] font-bold hover:underline cursor-pointer decoration-2 underline-offset-4">
+                  Xem tất cả đánh giá
                 </span>
               </div>
 
               {/* Price */}
-              <div className="flex items-baseline gap-3">
-                <span className="text-3xl font-bold text-gray-900">
-                  AU$37.00
-                </span>
-                <span className="text-sm text-gray-400 line-through">
-                  AU$52.00
-                </span>
-                <span className="text-sm font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full">
-                  29% OFF
-                </span>
+              <div className="flex items-center gap-4 bg-gray-50 p-5 rounded-2xl border border-gray-100">
+                <div className="flex flex-col">
+                  <span className="text-4xl font-black text-gray-900">
+                    450.000đ
+                  </span>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-sm text-gray-400 line-through">
+                      650.000đ
+                    </span>
+                    <span className="text-[11px] font-bold text-white bg-[#ff6b6b] px-2.5 py-0.5 rounded-full">
+                      TIẾT KIỆM 30%
+                    </span>
+                  </div>
+                </div>
               </div>
 
               {/* Options & CTA */}
