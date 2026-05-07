@@ -5,7 +5,7 @@ import Link from "next/link";
 import Footer from "@/components/Footer";
 import {
   Lock, Check, ChevronDown, ChevronUp,
-  Truck, Zap, CreditCard, Shield,
+  Truck, Zap, CreditCard, Shield, Gift,
 } from "lucide-react";
 
 /* ─── Mock order data ──────────────────────────────────────────────────── */
@@ -36,7 +36,7 @@ function Field({
         placeholder={placeholder}
         value={value}
         onChange={e => onChange(e.target.value)}
-        className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#2a9d8f] focus:border-transparent bg-white placeholder:text-gray-300"
+        className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6b6b] focus:border-transparent bg-white placeholder:text-gray-300"
       />
     </div>
   );
@@ -93,7 +93,7 @@ function OrderSummary({ items, shippingCost, finalTotal }: { items: any[]; shipp
             </div>
             <div className="flex justify-between text-gray-600">
               <span>Shipping</span>
-              <span className={shippingCost === 0 ? "text-[#2a9d8f] font-medium" : ""}>
+              <span className={shippingCost === 0 ? "text-[#ff6b6b] font-medium" : ""}>
                 {shippingCost === 0 ? "FREE" : `AU$${shippingCost.toFixed(2)}`}
               </span>
             </div>
@@ -120,11 +120,11 @@ function OrderSummary({ items, shippingCost, finalTotal }: { items: any[]; shipp
 /* ─── Confirmation ──────────────────────────────────────────────────────── */
 
 function Confirmation({ name, email }: { name: string; email: string }) {
-  const ref = `CAL-${Math.floor(100000 + Math.random() * 900000)}`;
+  const ref = `GIFT-${Math.floor(100000 + Math.random() * 900000)}`;
   return (
     <div className="flex-1 flex flex-col items-center justify-center gap-6 py-24 px-4">
-      <div className="w-20 h-20 rounded-full bg-[#e8f5f4] flex items-center justify-center">
-        <Check className="w-10 h-10 text-[#2a9d8f]" strokeWidth={2.5} />
+      <div className="w-20 h-20 rounded-full bg-[#fff0f0] flex items-center justify-center">
+        <Check className="w-10 h-10 text-[#ff6b6b]" strokeWidth={2.5} />
       </div>
       <div className="text-center max-w-sm">
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Order Confirmed!</h2>
@@ -138,7 +138,7 @@ function Confirmation({ name, email }: { name: string; email: string }) {
         <p className="text-xl font-bold text-gray-900">#{ref}</p>
         <p className="text-xs text-gray-400 mt-2">Estimated delivery: 5–8 business days</p>
       </div>
-      <Link href="/" className="text-sm text-[#2a9d8f] hover:underline font-medium">← Continue shopping</Link>
+      <Link href="/" className="text-sm text-[#ff6b6b] hover:underline font-medium">← Continue shopping</Link>
     </div>
   );
 }
@@ -151,10 +151,12 @@ function CheckoutHeader() {
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="h-14 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-1.5">
-            <div className="w-7 h-7 rounded-full bg-[#2a9d8f] flex items-center justify-center">
-              <span className="text-white font-bold text-xs">C</span>
+            <div className="w-7 h-7 rounded-xl bg-[#ff6b6b] flex items-center justify-center">
+              <Gift className="text-white w-4 h-4" />
             </div>
-            <span className="text-lg font-bold text-gray-900 tracking-tight">callie</span>
+            <span className="text-lg font-bold text-gray-900 tracking-tight">
+              Gift<span className="text-[#ff6b6b]">hub</span>
+            </span>
           </Link>
           <div className="flex items-center gap-1 text-xs text-gray-400">
             <Lock className="w-3.5 h-3.5" /> Secure checkout
@@ -274,7 +276,7 @@ export default function CheckoutPage() {
               onClick={() => setSummaryOpen(!summaryOpen)}
               className="lg:hidden w-full flex items-center justify-between bg-white border border-gray-200 rounded-2xl px-4 py-3 mb-4 shadow-sm"
             >
-              <div className="flex items-center gap-2 text-sm text-[#2a9d8f] font-medium">
+              <div className="flex items-center gap-2 text-sm text-[#ff6b6b] font-medium">
                 <span>🛍️</span>
                 {summaryOpen ? "Hide" : "Show"} order summary
                 {summaryOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -321,7 +323,7 @@ export default function CheckoutPage() {
                         <select
                           value={form.state}
                           onChange={e => set("state")(e.target.value)}
-                          className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#2a9d8f] bg-white appearance-none"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6b6b] bg-white appearance-none"
                         >
                           {AU_STATES.map(s => <option key={s}>{s}</option>)}
                         </select>
@@ -334,7 +336,7 @@ export default function CheckoutPage() {
                         <select
                           value={form.country}
                           onChange={e => set("country")(e.target.value)}
-                          className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#2a9d8f] bg-white"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6b6b] bg-white"
                         >
                           <option>Australia</option>
                           <option>New Zealand</option>
@@ -353,7 +355,7 @@ export default function CheckoutPage() {
                   </h2>
                   <div className="flex flex-col gap-2">
                     {[
-                      { value: "standard", icon: <Truck className="w-4 h-4 text-[#2a9d8f]" />, label: "Standard", eta: "5–8 business days", price: subtotal >= 60 ? "FREE" : "AU$9.95" },
+                      { value: "standard", icon: <Truck className="w-4 h-4 text-[#ff6b6b]" />, label: "Standard", eta: "5–8 business days", price: subtotal >= 60 ? "FREE" : "AU$9.95" },
                       { value: "express", icon: <Zap className="w-4 h-4 text-orange-500" />, label: "Express", eta: "2–3 business days", price: "AU$14.95" },
                     ].map(opt => {
                       const active = form.shippingMethod === opt.value;
@@ -361,17 +363,17 @@ export default function CheckoutPage() {
                         <button
                           key={opt.value}
                           onClick={() => set("shippingMethod")(opt.value)}
-                          className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl border-2 transition-all text-left ${active ? "border-[#2a9d8f] bg-[#e8f5f4]" : "border-gray-200 hover:border-gray-300 bg-white"}`}
+                          className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl border-2 transition-all text-left ${active ? "border-[#ff6b6b] bg-[#fff0f0]" : "border-gray-200 hover:border-gray-300 bg-white"}`}
                         >
-                          <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${active ? "border-[#2a9d8f]" : "border-gray-300"}`}>
-                            {active && <div className="w-2 h-2 rounded-full bg-[#2a9d8f]" />}
+                          <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${active ? "border-[#ff6b6b]" : "border-gray-300"}`}>
+                            {active && <div className="w-2 h-2 rounded-full bg-[#ff6b6b]" />}
                           </div>
                           {opt.icon}
                           <div className="flex-1 min-w-0">
                             <span className="text-xs font-semibold text-gray-900">{opt.label}</span>
                             <p className="text-[11px] text-gray-500">{opt.eta}</p>
                           </div>
-                          <span className={`text-xs font-bold flex-shrink-0 ${opt.price === "FREE" ? "text-[#2a9d8f]" : "text-gray-900"}`}>{opt.price}</span>
+                          <span className={`text-xs font-bold flex-shrink-0 ${opt.price === "FREE" ? "text-[#ff6b6b]" : "text-gray-900"}`}>{opt.price}</span>
                         </button>
                       );
                     })}
@@ -388,17 +390,17 @@ export default function CheckoutPage() {
                   <div className="flex gap-4 mb-6">
                     <button
                       onClick={() => setPaymentMethod("card")}
-                      className={`flex-1 py-3 px-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${paymentMethod === 'card' ? 'border-[#2a9d8f] bg-[#e8f5f4]' : 'border-gray-100'}`}
+                      className={`flex-1 py-3 px-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${paymentMethod === 'card' ? 'border-[#ff6b6b] bg-[#fff0f0]' : 'border-gray-100'}`}
                     >
-                      <CreditCard className={`w-5 h-5 ${paymentMethod === 'card' ? 'text-[#2a9d8f]' : 'text-gray-400'}`} />
-                      <span className={`text-xs font-bold ${paymentMethod === 'card' ? 'text-[#2a9d8f]' : 'text-gray-500'}`}>Credit Card</span>
+                      <CreditCard className={`w-5 h-5 ${paymentMethod === 'card' ? 'text-[#ff6b6b]' : 'text-gray-400'}`} />
+                      <span className={`text-xs font-bold ${paymentMethod === 'card' ? 'text-[#ff6b6b]' : 'text-gray-500'}`}>Credit Card</span>
                     </button>
                     <button
                       onClick={() => setPaymentMethod("paypal")}
-                      className={`flex-1 py-3 px-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${paymentMethod === 'paypal' ? 'border-[#2a9d8f] bg-[#e8f5f4]' : 'border-gray-100'}`}
+                      className={`flex-1 py-3 px-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${paymentMethod === 'paypal' ? 'border-[#ff6b6b] bg-[#fff0f0]' : 'border-gray-100'}`}
                     >
                       <span className="text-xl">🅿️</span>
-                      <span className={`text-xs font-bold ${paymentMethod === 'paypal' ? 'text-[#2a9d8f]' : 'text-gray-500'}`}>PayPal</span>
+                      <span className={`text-xs font-bold ${paymentMethod === 'paypal' ? 'text-[#ff6b6b]' : 'text-gray-500'}`}>PayPal</span>
                     </button>
                   </div>
 
@@ -433,7 +435,7 @@ export default function CheckoutPage() {
                   <button
                     onClick={() => handlePlace()}
                     disabled={processing || items.length === 0}
-                    className="w-full py-4 rounded-2xl bg-[#2a9d8f] hover:bg-[#21867a] disabled:opacity-70 text-white font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#2a9d8f]/25"
+                    className="w-full py-4 rounded-2xl bg-[#ff6b6b] hover:bg-[#ee5253] disabled:opacity-70 text-white font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#ff6b6b]/25"
                   >
                     {processing ? "Processing..." : `Place Order · AU$${finalTotal.toFixed(2)}`}
                   </button>

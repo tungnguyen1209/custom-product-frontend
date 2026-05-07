@@ -16,7 +16,7 @@ function AccordionItem({ title, children, defaultOpen = false }: AccordionItemPr
     <div className="border-b border-gray-100 last:border-0">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between py-4 text-sm font-semibold text-gray-800 hover:text-[#2a9d8f] transition-colors"
+        className="w-full flex items-center justify-between py-4 text-sm font-semibold text-gray-800 hover:text-[#ff6b6b] transition-colors"
       >
         {title}
         {open ? (
@@ -53,7 +53,7 @@ export default function ProductDescription() {
             "Suitable for high school, university, and college graduates",
           ].map((point) => (
             <li key={point} className="flex items-start gap-2">
-              <span className="text-[#2a9d8f] mt-0.5 flex-shrink-0">✓</span>
+              <span className="text-[#ff6b6b] mt-0.5 flex-shrink-0">✓</span>
               {point}
             </li>
           ))}
@@ -101,7 +101,7 @@ export default function ProductDescription() {
         </div>
       </AccordionItem>
 
-      <AccordionItem title="Why Choose Callie?">
+      <AccordionItem title="Why Choose gifthub?">
         <div className="grid grid-cols-1 gap-3">
           {[
             {

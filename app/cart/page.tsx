@@ -129,7 +129,7 @@ export default function CartPage() {
       <>
         <Header />
         <main className="flex-1 flex items-center justify-center">
-          <div className="w-8 h-8 border-4 border-[#2a9d8f]/20 border-t-[#2a9d8f] rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-[#ff6b6b]/20 border-t-[#ff6b6b] rounded-full animate-spin" />
         </main>
         <Footer />
       </>
@@ -142,14 +142,14 @@ export default function CartPage() {
       <>
         <Header />
         <main className="flex-1 flex flex-col items-center justify-center gap-6 py-24 px-4">
-          <div className="w-20 h-20 rounded-full bg-[#e8f5f4] flex items-center justify-center">
-            <ShoppingBag className="w-10 h-10 text-[#2a9d8f]" />
+          <div className="w-20 h-20 rounded-full bg-[#fff0f0] flex items-center justify-center">
+            <ShoppingBag className="w-10 h-10 text-[#ff6b6b]" />
           </div>
           <div className="text-center">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Your cart is empty</h2>
             <p className="text-gray-500 text-sm">Add some personalised gifts to get started.</p>
           </div>
-          <Link href="/" className="px-6 py-3 rounded-2xl bg-[#2a9d8f] text-white font-semibold text-sm hover:bg-[#21867a] transition-colors flex items-center gap-2">
+          <Link href="/" className="px-6 py-3 rounded-2xl bg-[#ff6b6b] text-white font-semibold text-sm hover:bg-[#ee5253] transition-colors flex items-center gap-2">
             Continue Shopping <ArrowRight className="w-4 h-4" />
           </Link>
         </main>
@@ -168,7 +168,7 @@ export default function CartPage() {
             {["Home", "Cart"].map((crumb, i) => (
               <span key={crumb} className="flex items-center gap-1">
                 {i > 0 && <ChevronRight className="w-3 h-3" />}
-                <a href="#" className="hover:text-[#2a9d8f] transition-colors">{crumb}</a>
+                <a href="#" className="hover:text-[#ff6b6b] transition-colors">{crumb}</a>
               </span>
             ))}
           </nav>
@@ -181,7 +181,7 @@ export default function CartPage() {
                   Your Cart{" "}
                   <span className="text-gray-400 font-normal text-base">({totalQty} items)</span>
                 </h1>
-                <Link href="/" className="text-sm text-[#2a9d8f] hover:underline font-medium">
+                <Link href="/" className="text-sm text-[#ff6b6b] hover:underline font-medium">
                   ← Continue shopping
                 </Link>
               </div>
@@ -203,8 +203,8 @@ export default function CartPage() {
                   </div>
                 </div>
               ) : (
-                <div className="bg-[#e8f5f4] border border-[#2a9d8f]/20 rounded-2xl px-4 py-3 flex items-center gap-2 text-sm text-[#1a6b61] font-medium">
-                  <Check className="w-4 h-4 text-[#2a9d8f]" />
+                <div className="bg-[#fff0f0] border border-[#ff6b6b]/20 rounded-2xl px-4 py-3 flex items-center gap-2 text-sm text-[#1a6b61] font-medium">
+                  <Check className="w-4 h-4 text-[#ff6b6b]" />
                   You qualify for FREE shipping!
                 </div>
               )}
@@ -222,7 +222,7 @@ export default function CartPage() {
               {/* Gift message */}
               <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm">
                 <div className="flex items-center gap-2 mb-3">
-                  <Gift className="w-4 h-4 text-[#2a9d8f]" />
+                  <Gift className="w-4 h-4 text-[#ff6b6b]" />
                   <span className="text-sm font-semibold text-gray-800">Add a gift message (optional)</span>
                 </div>
                 <textarea
@@ -231,7 +231,7 @@ export default function CartPage() {
                   placeholder="Write a personal message for the recipient..."
                   rows={3}
                   maxLength={200}
-                  className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2a9d8f] resize-none placeholder:text-gray-300"
+                  className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#ff6b6b] resize-none placeholder:text-gray-300"
                 />
                 <p className="text-right text-xs text-gray-300 mt-1">{giftMsg.length}/200</p>
               </div>
@@ -252,17 +252,17 @@ export default function CartPage() {
                         value={promo}
                         onChange={e => { setPromo(e.target.value); setPromoState("idle"); }}
                         placeholder="Promo code"
-                        className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2a9d8f]"
+                        className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#ff6b6b]"
                       />
                     </div>
                     <button
                       onClick={applyPromo}
-                      className="px-3 py-2 text-sm font-semibold bg-[#2a9d8f] text-white rounded-xl hover:bg-[#21867a] transition-colors"
+                      className="px-3 py-2 text-sm font-semibold bg-[#ff6b6b] text-white rounded-xl hover:bg-[#ee5253] transition-colors"
                     >
                       Apply
                     </button>
                   </div>
-                  {promoState === "ok" && <p className="text-xs text-[#2a9d8f] font-medium mb-3">✓ 10% discount applied!</p>}
+                  {promoState === "ok" && <p className="text-xs text-[#ff6b6b] font-medium mb-3">✓ 10% discount applied!</p>}
                   {promoState === "err" && <p className="text-xs text-red-400 mb-3">Invalid code — try GRAD10</p>}
 
                   {/* Totals */}
@@ -285,7 +285,7 @@ export default function CartPage() {
 
                   <Link
                     href="/checkout"
-                    className="mt-4 w-full py-3.5 rounded-2xl bg-[#2a9d8f] hover:bg-[#21867a] text-white font-semibold text-sm transition-all flex items-center justify-center gap-2 shadow-md shadow-[#2a9d8f]/20"
+                    className="mt-4 w-full py-3.5 rounded-2xl bg-[#ff6b6b] hover:bg-[#ee5253] text-white font-semibold text-sm transition-all flex items-center justify-center gap-2 shadow-md shadow-[#ff6b6b]/20"
                   >
                     <Lock className="w-4 h-4" /> Proceed to Checkout
                   </Link>
@@ -332,7 +332,7 @@ export default function CartPage() {
 
 function Row({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
-    <div className={`flex justify-between ${highlight ? "text-[#2a9d8f] font-medium" : "text-gray-600"}`}>
+    <div className={`flex justify-between ${highlight ? "text-[#ff6b6b] font-medium" : "text-gray-600"}`}>
       <span>{label}</span>
       <span>{value}</span>
     </div>

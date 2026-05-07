@@ -20,7 +20,7 @@ export default function Header() {
     <header className="sticky top-0 z-50 bg-white shadow-sm">
       {/* Top promo bar */}
       <div className="bg-[#ff6b6b] text-white text-center text-xs py-2 px-4 font-medium tracking-wide">
-        🎁 Gửi trọn yêu thương với quà tặng từ Gifthub &bull; Free Shipping over $50
+        🎁 Send all your love with gifts from Gifthub &bull; Free Shipping over $50
       </div>
 
       {/* Main header */}

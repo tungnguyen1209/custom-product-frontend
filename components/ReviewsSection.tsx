@@ -112,7 +112,7 @@ export default function ReviewsSection() {
 
         {/* Summary */}
         <div className="flex flex-col sm:flex-row gap-8 mb-10">
-          <div className="flex flex-col items-center justify-center bg-[#e8f5f4] rounded-2xl p-6 min-w-[140px]">
+          <div className="flex flex-col items-center justify-center bg-[#fff0f0] rounded-2xl p-6 min-w-[140px]">
             <span className="text-5xl font-bold text-gray-900">4.8</span>
             <StarRating rating={4.8} size="md" />
             <span className="text-sm text-gray-500 mt-2">9 reviews</span>
@@ -144,7 +144,7 @@ export default function ReviewsSection() {
               className="bg-white border border-gray-100 rounded-2xl p-5 hover:shadow-sm transition-shadow"
             >
               <div className="flex items-start gap-3 mb-3">
-                <div className="w-10 h-10 rounded-full bg-[#2a9d8f] flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                <div className="w-10 h-10 rounded-full bg-[#ff6b6b] flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                   {review.avatar}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -153,7 +153,7 @@ export default function ReviewsSection() {
                       {review.author}
                     </span>
                     {review.verified && (
-                      <span className="text-xs text-[#2a9d8f] bg-[#e8f5f4] px-2 py-0.5 rounded-full font-medium">
+                      <span className="text-xs text-[#ff6b6b] bg-[#fff0f0] px-2 py-0.5 rounded-full font-medium">
                         ✓ Verified Purchase
                       </span>
                     )}
@@ -176,7 +176,7 @@ export default function ReviewsSection() {
                 onClick={() => toggleHelpful(review.id)}
                 className={`mt-3 flex items-center gap-1.5 text-xs transition-colors ${
                   helpfulMap[review.id]
-                    ? "text-[#2a9d8f]"
+                    ? "text-[#ff6b6b]"
                     : "text-gray-400 hover:text-gray-600"
                 }`}
               >
@@ -191,7 +191,7 @@ export default function ReviewsSection() {
         {reviews.length > 3 && (
           <button
             onClick={() => setShowAll(!showAll)}
-            className="mt-6 w-full flex items-center justify-center gap-2 py-3 border border-gray-200 rounded-2xl text-sm font-medium text-gray-600 hover:border-[#2a9d8f] hover:text-[#2a9d8f] transition-all"
+            className="mt-6 w-full flex items-center justify-center gap-2 py-3 border border-gray-200 rounded-2xl text-sm font-medium text-gray-600 hover:border-[#ff6b6b] hover:text-[#ff6b6b] transition-all"
           >
             {showAll ? "Show fewer reviews" : `Show all ${reviews.length} reviews`}
             <ChevronDown

@@ -221,8 +221,8 @@ export default function ProductGallery({
             }}
             className={`flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden transition-all ${
               i === activeIndex
-                ? "ring-2 ring-[#2a9d8f] ring-offset-1"
-                : "ring-1 ring-gray-200 hover:ring-[#2a9d8f] opacity-70 hover:opacity-100"
+                ? "ring-2 ring-[#ff6b6b] ring-offset-1"
+                : "ring-1 ring-gray-200 hover:ring-[#ff6b6b] opacity-70 hover:opacity-100"
             }`}
           >
             <div

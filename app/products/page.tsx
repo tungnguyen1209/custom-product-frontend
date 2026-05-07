@@ -100,7 +100,7 @@ function FilterSection({
     <div className="border-b border-gray-100 py-4">
       <button
         onClick={onToggle}
-        className="flex items-center justify-between w-full text-sm font-semibold text-gray-800 hover:text-[#2a9d8f] transition-colors"
+        className="flex items-center justify-between w-full text-sm font-semibold text-gray-800 hover:text-[#ff6b6b] transition-colors"
       >
         {title}
         {expanded
@@ -124,10 +124,10 @@ function FilterPanel({
       {/* Header */}
       <div className="flex items-center justify-between mb-1">
         <h2 className="font-semibold text-gray-800 flex items-center gap-2">
-          <SlidersHorizontal className="w-4 h-4 text-[#2a9d8f]" />
+          <SlidersHorizontal className="w-4 h-4 text-[#ff6b6b]" />
           Filters
           {activeCount > 0 && (
-            <span className="w-5 h-5 bg-[#2a9d8f] text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+            <span className="w-5 h-5 bg-[#ff6b6b] text-white text-[10px] font-bold rounded-full flex items-center justify-center">
               {activeCount}
             </span>
           )}
@@ -156,7 +156,7 @@ function FilterPanel({
                   type="checkbox"
                   checked={selectedCategories.includes(cat)}
                   onChange={() => onToggleCategory(cat)}
-                  className="w-4 h-4 rounded border-gray-300 text-[#2a9d8f] accent-[#2a9d8f] cursor-pointer"
+                  className="w-4 h-4 rounded border-gray-300 text-[#ff6b6b] accent-[#ff6b6b] cursor-pointer"
                 />
                 <span className="text-sm text-gray-600 group-hover:text-gray-900 transition-colors">
                   {cat}
@@ -182,7 +182,7 @@ function FilterPanel({
               placeholder="Min"
               value={minPrice}
               onChange={(e) => onMinPriceChange(e.target.value)}
-              className="w-full pl-6 pr-2 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#2a9d8f] focus:border-transparent"
+              className="w-full pl-6 pr-2 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6b6b] focus:border-transparent"
             />
           </div>
           <span className="text-gray-400 text-sm flex-shrink-0">–</span>
@@ -194,7 +194,7 @@ function FilterPanel({
               placeholder="Max"
               value={maxPrice}
               onChange={(e) => onMaxPriceChange(e.target.value)}
-              className="w-full pl-6 pr-2 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#2a9d8f] focus:border-transparent"
+              className="w-full pl-6 pr-2 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6b6b] focus:border-transparent"
             />
           </div>
         </div>
@@ -214,7 +214,7 @@ function FilterPanel({
                 name="rating"
                 checked={minRating === opt.value}
                 onChange={() => onRatingChange(minRating === opt.value ? 0 : opt.value)}
-                className="w-4 h-4 border-gray-300 accent-[#2a9d8f] cursor-pointer"
+                className="w-4 h-4 border-gray-300 accent-[#ff6b6b] cursor-pointer"
               />
               <span className="flex items-center gap-1 text-sm text-gray-600 group-hover:text-gray-900 transition-colors">
                 {Array.from({ length: 5 }, (_, i) => (
@@ -262,9 +262,9 @@ function Toggle({
         role="switch"
         aria-checked={checked}
         onClick={() => onChange(!checked)}
-        className={`relative w-10 h-5 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-[#2a9d8f] ${
+        className={`relative w-10 h-5 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-[#ff6b6b] ${
           checked
-            ? accent ? "bg-red-500" : "bg-[#2a9d8f]"
+            ? accent ? "bg-red-500" : "bg-[#ff6b6b]"
             : "bg-gray-200"
         }`}
       >
@@ -407,7 +407,7 @@ export default function ProductsPage() {
         <div className="bg-white border-b border-gray-100">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
             <nav className="text-xs text-gray-400 mb-2 flex items-center gap-1.5">
-              <a href="/" className="hover:text-[#2a9d8f] transition-colors">Home</a>
+              <a href="/" className="hover:text-[#ff6b6b] transition-colors">Home</a>
               <span>/</span>
               <span className="text-gray-700 font-medium">All Products</span>
             </nav>
@@ -437,12 +437,12 @@ export default function ProductsPage() {
                   {/* Mobile filter trigger */}
                   <button
                     onClick={() => setShowMobileFilter(true)}
-                    className="lg:hidden flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:border-[#2a9d8f] hover:text-[#2a9d8f] transition-colors shadow-sm"
+                    className="lg:hidden flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:border-[#ff6b6b] hover:text-[#ff6b6b] transition-colors shadow-sm"
                   >
                     <SlidersHorizontal className="w-4 h-4" />
                     Filters
                     {activeFilterCount > 0 && (
-                      <span className="w-4 h-4 bg-[#2a9d8f] text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                      <span className="w-4 h-4 bg-[#ff6b6b] text-white text-[10px] font-bold rounded-full flex items-center justify-center">
                         {activeFilterCount}
                       </span>
                     )}
@@ -460,7 +460,7 @@ export default function ProductsPage() {
                   <select
                     value={sortBy}
                     onChange={(e) => { setSortBy(e.target.value); setPage(1); }}
-                    className="appearance-none pl-3.5 pr-9 py-2 rounded-xl border border-gray-200 bg-white text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#2a9d8f] focus:border-transparent cursor-pointer shadow-sm"
+                    className="appearance-none pl-3.5 pr-9 py-2 rounded-xl border border-gray-200 bg-white text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#ff6b6b] focus:border-transparent cursor-pointer shadow-sm"
                   >
                     {SORT_OPTIONS.map((o) => (
                       <option key={o.value} value={o.value}>{o.label}</option>
@@ -578,7 +578,7 @@ export default function ProductsPage() {
           <div className="relative w-80 max-w-[85vw] bg-white flex flex-col shadow-2xl">
             <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100">
               <h2 className="font-semibold text-gray-800 flex items-center gap-2">
-                <SlidersHorizontal className="w-4 h-4 text-[#2a9d8f]" />
+                <SlidersHorizontal className="w-4 h-4 text-[#ff6b6b]" />
                 Filters
               </h2>
               <button
@@ -594,7 +594,7 @@ export default function ProductsPage() {
             <div className="p-4 border-t border-gray-100">
               <button
                 onClick={() => setShowMobileFilter(false)}
-                className="w-full py-3 rounded-2xl bg-[#2a9d8f] text-white font-semibold text-sm hover:bg-[#21867a] transition-colors"
+                className="w-full py-3 rounded-2xl bg-[#ff6b6b] text-white font-semibold text-sm hover:bg-[#ee5253] transition-colors"
               >
                 Show {filteredAndSorted.length} products
               </button>
@@ -610,11 +610,11 @@ export default function ProductsPage() {
 
 function Chip({ label, onRemove }: { label: string; onRemove: () => void }) {
   return (
-    <span className="inline-flex items-center gap-1 pl-2.5 pr-1.5 py-0.5 bg-[#e8f5f4] text-[#2a9d8f] text-xs font-medium rounded-full">
+    <span className="inline-flex items-center gap-1 pl-2.5 pr-1.5 py-0.5 bg-[#fff0f0] text-[#ff6b6b] text-xs font-medium rounded-full">
       {label}
       <button
         onClick={onRemove}
-        className="w-3.5 h-3.5 flex items-center justify-center rounded-full hover:bg-[#2a9d8f] hover:text-white transition-colors"
+        className="w-3.5 h-3.5 flex items-center justify-center rounded-full hover:bg-[#ff6b6b] hover:text-white transition-colors"
       >
         <X className="w-2.5 h-2.5" />
       </button>
@@ -636,10 +636,10 @@ function PaginationBtn({
       disabled={disabled}
       className={`w-9 h-9 flex items-center justify-center rounded-xl text-sm font-medium transition-all ${
         active
-          ? "bg-[#2a9d8f] text-white shadow-md shadow-[#2a9d8f]/30"
+          ? "bg-[#ff6b6b] text-white shadow-md shadow-[#ff6b6b]/30"
           : disabled
           ? "border border-gray-100 bg-white text-gray-300 cursor-not-allowed"
-          : "border border-gray-200 bg-white text-gray-600 hover:border-[#2a9d8f] hover:text-[#2a9d8f]"
+          : "border border-gray-200 bg-white text-gray-600 hover:border-[#ff6b6b] hover:text-[#ff6b6b]"
       }`}
     >
       {children}
@@ -657,7 +657,7 @@ function EmptyState({ onClear }: { onClear: () => void }) {
       <p className="text-sm text-gray-400 mt-1">Try adjusting or clearing your filters</p>
       <button
         onClick={onClear}
-        className="mt-4 px-5 py-2 rounded-xl bg-[#2a9d8f] text-white text-sm font-semibold hover:bg-[#21867a] transition-colors"
+        className="mt-4 px-5 py-2 rounded-xl bg-[#ff6b6b] text-white text-sm font-semibold hover:bg-[#ee5253] transition-colors"
       >
         Clear all filters
       </button>

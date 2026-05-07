@@ -36,7 +36,7 @@ function PreviewModal({
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h3 className="text-lg font-bold text-gray-900">Xem trước quà tặng</h3>
+          <h3 className="text-lg font-bold text-gray-900">Preview Your Gift</h3>
           <button
             onClick={onClose}
             className="p-2 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
@@ -52,7 +52,7 @@ function PreviewModal({
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={imageUrl}
-                alt="Xem trước cá nhân hóa"
+                alt="Personalization Preview"
                 className="max-w-full max-h-full object-contain"
               />
             </Zoom>
@@ -68,16 +68,16 @@ function PreviewModal({
           >
             {isAdded ? (
               <>
-                <CheckCircle className="w-6 h-6" /> Đã thêm vào giỏ!
+                <CheckCircle className="w-6 h-6" /> Added to Cart!
               </>
             ) : (
               <>
-                <ShoppingCart className="w-6 h-6" /> Thêm vào giỏ hàng
+                <ShoppingCart className="w-6 h-6" /> Add to Cart
               </>
             )}
           </button>
           <p className="text-center text-[10px] text-gray-400 mt-4 leading-relaxed">
-            * Đây là bản xem trước kỹ thuật số. Màu sắc sản phẩm thực tế có thể hơi khác biệt so với màn hình.
+            * This is a digital preview. Actual product colors may vary slightly from the screen.
           </p>
         </div>
       </div>
@@ -247,7 +247,7 @@ function DropdownOption({
           }}
           className="w-full px-4 py-3 pr-10 rounded-xl border border-gray-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ff6b6b]/20 focus:border-[#ff6b6b] bg-white appearance-none cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed transition-all"
         >
-          <option value="">— Chọn {option.label} —</option>
+          <option value="">— Select {option.label} —</option>
           {values.map((val) => (
             <option key={typeof val.id !== 'undefined' ? val.id : val.valueName} value={typeof val.id !== 'undefined' ? val.id : val.valueName}>
               {val.valueName}
@@ -274,7 +274,7 @@ function TextInputOption({
   onChange: (val: string) => void;
 }) {
   const maxLen = option.config?.maxLength ?? 100;
-  const placeholder = option.config?.placeholder ?? "Nhập nội dung...";
+  const placeholder = option.config?.placeholder ?? "Enter text...";
   const value = String(option.currentValue ?? "");
 
   return (
@@ -346,8 +346,8 @@ function ImageUploadOption({
   };
 
   const helpText =
-    option.config?.helpText ?? "Tải lên ảnh của bạn để thiết kế quà tặng";
-  const buttonText = option.config?.buttonText ?? "Chọn ảnh từ máy";
+    option.config?.helpText ?? "Upload a photo for your gift design";
+  const buttonText = option.config?.buttonText ?? "Choose photo from device";
 
   return (
     <div className="flex flex-col gap-2">
@@ -368,7 +368,7 @@ function ImageUploadOption({
             <p className="text-sm font-bold text-gray-800 truncate">
               {preview.name}
             </p>
-            <p className="text-[11px] font-bold text-[#ff6b6b] mt-0.5 uppercase tracking-wider">Đã tải lên ✓</p>
+            <p className="text-[11px] font-bold text-[#ff6b6b] mt-0.5 uppercase tracking-wider">Uploaded ✓</p>
             <button
               onClick={() => {
                 setPreview(null);
@@ -376,7 +376,7 @@ function ImageUploadOption({
               }}
               className="mt-2 text-xs text-gray-400 hover:text-[#ff6b6b] flex items-center gap-1.5 font-bold transition-colors"
             >
-              <X className="w-3.5 h-3.5" /> Xóa ảnh
+              <X className="w-3.5 h-3.5" /> Remove photo
             </button>
           </div>
         </div>
@@ -400,14 +400,14 @@ function ImageUploadOption({
           </div>
           <div className="text-center">
             <p className="text-sm font-bold text-gray-700">
-              {dragging ? "Thả ảnh vào đây" : buttonText}
+              {dragging ? "Drop photo here" : buttonText}
             </p>
             <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-tight">
-              JPG, PNG, WEBP · Tối đa 10 MB
+              JPG, PNG, WEBP · Max 10 MB
             </p>
           </div>
           <span className="text-xs text-[#ff6b6b] flex items-center gap-1.5 font-bold mt-1">
-            <Upload className="w-3.5 h-3.5" /> Duyệt từ thư viện
+            <Upload className="w-3.5 h-3.5" /> Browse files
           </span>
           <input
             ref={inputRef}
@@ -443,7 +443,7 @@ function CartStrip({
     <div className="flex flex-col gap-6 pt-2">
       {/* Quantity */}
       <div className="flex flex-col gap-2">
-        <label className="text-sm font-bold text-gray-800">Số lượng</label>
+        <label className="text-sm font-bold text-gray-800">Quantity</label>
         <div className="flex items-center">
           <button
             onClick={() => setQty((q) => Math.max(1, q - 1))}
@@ -477,7 +477,7 @@ function CartStrip({
           onClick={onPreview}
           className="w-full py-4 rounded-2xl font-bold text-sm bg-white hover:bg-gray-50 text-gray-900 transition-all flex items-center justify-center gap-2.5 border-2 border-gray-100 shadow-sm"
         >
-          <Eye className="w-5 h-5 text-[#ff6b6b]" /> Xem trước thiết kế của bạn
+          <Eye className="w-5 h-5 text-[#ff6b6b]" /> Preview Your Design
         </button>
         <button
           onClick={onAdd}
@@ -489,11 +489,11 @@ function CartStrip({
         >
           {added ? (
             <>
-              <CheckCircle className="w-5 h-5" /> Đã thêm vào giỏ!
+              <CheckCircle className="w-5 h-5" /> Added to Cart!
             </>
           ) : (
             <>
-              <ShoppingCart className="w-5 h-5" /> Thêm vào giỏ hàng
+              <ShoppingCart className="w-5 h-5" /> Add to Cart
             </>
           )}
         </button>
@@ -508,10 +508,10 @@ function CartStrip({
           <Heart
             className={`w-4 h-4 ${wishlisted ? "fill-[#ff6b6b] text-[#ff6b6b]" : ""}`}
           />
-          {wishlisted ? "Đã lưu" : "Yêu thích"}
+          {wishlisted ? "Saved" : "Wishlist"}
         </button>
         <button className="flex items-center gap-2 text-[13px] font-bold text-gray-500 hover:text-[#ff6b6b] transition-colors">
-          <Share2 className="w-4 h-4" /> Chia sẻ
+          <Share2 className="w-4 h-4" /> Share
         </button>
       </div>
     </div>
@@ -576,7 +576,7 @@ export default function CustomizationForm({ productId }: { productId: string }) 
     try {
       await addItem({
         productId: parseInt(productId),
-        productName: `Gối tựa lưng cá nhân hóa`,
+        productName: `Personalized Throw Pillow`,
         unitPrice: 450000,
         customization,
       });
@@ -736,18 +736,18 @@ export default function CustomizationForm({ productId }: { productId: string }) 
         <div className="flex items-center gap-3 bg-[#fff0f0] border border-[#ff6b6b]/20 rounded-2xl px-5 py-4 shadow-sm">
           <Gift className="w-5 h-5 text-[#ff6b6b] flex-shrink-0" />
           <p className="text-[13px] text-[#ee5253] font-bold">
-            Miễn phí hộp quà tặng cao cấp đi kèm mọi đơn hàng
+            Free premium gift box included with every order
           </p>
         </div>
 
         {fetchError ? (
           <p className="text-sm text-red-500 font-bold px-1">
-            Không thể tải các tùy chọn thiết kế. Vui lòng làm mới trang.
+            Could not load customization options. Please refresh.
           </p>
         ) : (
           <div className="flex items-center gap-4 py-8 text-gray-400 text-sm font-bold">
             <Loader2 className="w-6 h-6 animate-spin text-[#ff6b6b]" />
-            Đang tải các tùy chọn thiết kế...
+            Loading customization options...
           </div>
         )}
 
@@ -762,7 +762,7 @@ export default function CustomizationForm({ productId }: { productId: string }) 
       <div className="flex items-center gap-3 bg-[#fff0f0] border border-[#ff6b6b]/20 rounded-2xl px-5 py-4 shadow-sm">
         <Gift className="w-5 h-5 text-[#ff6b6b] flex-shrink-0" />
         <p className="text-[13px] text-[#ee5253] font-bold">
-          Miễn phí hộp quà tặng cao cấp đi kèm mọi đơn hàng
+          Free premium gift box included with every order
         </p>
       </div>
 

@@ -43,10 +43,10 @@ export default function ProductPage({ params }: Props) {
         {/* Breadcrumb */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
           <nav className="flex items-center gap-1 text-xs text-gray-400 flex-wrap">
-            {["Home", "Graduation", "Sashes & Accessories"].map((crumb, i) => (
+            {["Gifthub", "Meaningful Gifts"].map((crumb, i) => (
               <span key={crumb} className="flex items-center gap-1">
                 {i > 0 && <ChevronRight className="w-3 h-3" />}
-                <a href="#" className="hover:text-[#2a9d8f] transition-colors">
+                <a href="#" className="hover:text-[#ff6b6b] transition-colors">
                   {crumb}
                 </a>
               </span>
@@ -71,16 +71,16 @@ export default function ProductPage({ params }: Props) {
               {/* Desktop zoom hint */}
               <div className="hidden lg:group-hover:flex absolute inset-0 items-center justify-center bg-black/5 transition-colors rounded-2xl pointer-events-none">
                  <div className="bg-white/90 p-3 rounded-full shadow-lg scale-90 group-hover:scale-100 transition-transform">
-                    <ZoomIn className="w-6 h-6 text-[#2a9d8f]" />
+                    <ZoomIn className="w-6 h-6 text-[#ff6b6b]" />
                  </div>
               </div>
 
               {/* Mobile Live + Zoom hint */}
               <div className="lg:hidden absolute top-4 right-6 flex items-center gap-2">
-                <span className="bg-[#2a9d8f] text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest shadow-sm">
+                <span className="bg-[#ff6b6b] text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest shadow-sm">
                   Live
                 </span>
-                <div className="bg-white/90 p-1.5 rounded-full shadow-md text-[#2a9d8f]">
+                <div className="bg-white/90 p-1.5 rounded-full shadow-md text-[#ff6b6b]">
                   <ZoomIn className="w-3.5 h-3.5" />
                 </div>
               </div>
@@ -89,8 +89,8 @@ export default function ProductPage({ params }: Props) {
             {/* Right – Product info & Customization Form */}
             <div className="flex flex-col gap-6">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs font-semibold text-[#2a9d8f] bg-[#e8f5f4] px-3 py-1 rounded-full">
-                  🎓 Graduation Gifts
+                <span className="text-xs font-semibold text-[#ff6b6b] bg-[#fff0f0] px-3 py-1 rounded-full">
+                  💝 Meaningful Gifts
                 </span>
                 <span className="text-xs font-semibold text-orange-600 bg-orange-50 px-3 py-1 rounded-full">
                   🔥 Popular — 48 sold this week
@@ -103,7 +103,7 @@ export default function ProductPage({ params }: Props) {
 
               <div className="flex items-center gap-3 flex-wrap">
                 <StarRating rating={4.8} count={9} size="md" />
-                <span className="text-sm text-[#2a9d8f] font-medium hover:underline cursor-pointer">
+                <span className="text-sm text-[#ff6b6b] font-medium hover:underline cursor-pointer">
                   See all reviews
                 </span>
               </div>

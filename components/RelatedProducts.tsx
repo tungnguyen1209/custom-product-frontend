@@ -111,13 +111,13 @@ export default function RelatedProducts({ productId }: { productId: string | nul
           <div className="hidden sm:flex gap-2">
             <button
               onClick={() => scroll('left')}
-              className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 hover:border-[#2a9d8f] hover:text-[#2a9d8f] transition-all bg-white shadow-sm"
+              className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 hover:border-[#ff6b6b] hover:text-[#ff6b6b] transition-all bg-white shadow-sm"
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
             <button
               onClick={() => scroll('right')}
-              className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 hover:border-[#2a9d8f] hover:text-[#2a9d8f] transition-all bg-white shadow-sm"
+              className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 hover:border-[#ff6b6b] hover:text-[#ff6b6b] transition-all bg-white shadow-sm"
             >
               <ChevronRight className="w-5 h-5" />
             </button>

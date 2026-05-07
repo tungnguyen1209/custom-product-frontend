@@ -24,7 +24,7 @@ interface Swatch {
 
 const sashColorSwatches: Swatch[] = [
   { id: "royal-blue",  label: "Royal Blue",   color: "#2563eb", border: "#1d4ed8", emoji: "💙" },
-  { id: "teal",        label: "Teal",          color: "#2a9d8f", border: "#21867a", emoji: "🩵" },
+  { id: "teal",        label: "Teal",          color: "#ff6b6b", border: "#ee5253", emoji: "🩵" },
   { id: "gold",        label: "Gold",          color: "#d97706", border: "#b45309", emoji: "🌟" },
   { id: "crimson",     label: "Crimson",       color: "#dc2626", border: "#b91c1c", emoji: "❤️" },
   { id: "purple",      label: "Purple",        color: "#7c3aed", border: "#6d28d9", emoji: "💜" },
@@ -70,7 +70,7 @@ function SwatchColorPicker({
           onClick={() => onSelect(s.id)}
           className={`relative w-9 h-9 rounded-full transition-all focus:outline-none ${
             selected === s.id
-              ? "ring-2 ring-offset-2 ring-[#2a9d8f] scale-110"
+              ? "ring-2 ring-offset-2 ring-[#ff6b6b] scale-110"
               : "hover:scale-105 hover:ring-2 hover:ring-offset-1 hover:ring-gray-300"
           }`}
           style={{ backgroundColor: s.color, borderWidth: 2, borderColor: s.border }}
@@ -103,7 +103,7 @@ function StyleSwatchPicker({
           onClick={() => onSelect(s.id)}
           className={`relative flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl border-2 transition-all text-center ${
             selected === s.id
-              ? "border-[#2a9d8f] bg-[#e8f5f4]"
+              ? "border-[#ff6b6b] bg-[#fff0f0]"
               : "border-gray-100 bg-gray-50 hover:border-gray-200"
           }`}
         >
@@ -116,12 +116,12 @@ function StyleSwatchPicker({
             {s.label}
           </span>
           {s.price > 0 && (
-            <span className="text-[10px] text-[#2a9d8f] font-semibold">
+            <span className="text-[10px] text-[#ff6b6b] font-semibold">
               +AU${s.price.toFixed(2)}
             </span>
           )}
           {selected === s.id && (
-            <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-[#2a9d8f] rounded-full flex items-center justify-center">
+            <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-[#ff6b6b] rounded-full flex items-center justify-center">
               <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
             </span>
           )}
@@ -177,7 +177,7 @@ function ImageUploader({
 
   if (value) {
     return (
-      <div className="relative rounded-xl border-2 border-[#2a9d8f] bg-[#e8f5f4] overflow-hidden">
+      <div className="relative rounded-xl border-2 border-[#ff6b6b] bg-[#fff0f0] overflow-hidden">
         <div className="flex items-center gap-3 p-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -192,7 +192,7 @@ function ImageUploader({
             </p>
             <button
               onClick={() => onChange(null)}
-              className="mt-1.5 text-xs text-[#2a9d8f] hover:text-red-500 font-medium transition-colors flex items-center gap-1"
+              className="mt-1.5 text-xs text-[#ff6b6b] hover:text-red-500 font-medium transition-colors flex items-center gap-1"
             >
               <X className="w-3 h-3" /> Remove & re-upload
             </button>
@@ -210,8 +210,8 @@ function ImageUploader({
       onClick={() => inputRef.current?.click()}
       className={`flex flex-col items-center justify-center gap-2 py-8 px-4 rounded-xl border-2 border-dashed cursor-pointer transition-all ${
         dragging
-          ? "border-[#2a9d8f] bg-[#e8f5f4] scale-[1.01]"
-          : "border-gray-200 hover:border-[#2a9d8f] hover:bg-gray-50"
+          ? "border-[#ff6b6b] bg-[#fff0f0] scale-[1.01]"
+          : "border-gray-200 hover:border-[#ff6b6b] hover:bg-gray-50"
       }`}
     >
       <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
@@ -225,7 +225,7 @@ function ImageUploader({
           Drag & drop or click to browse · JPG, PNG, WEBP · Max 10 MB
         </p>
       </div>
-      <span className="text-xs text-[#2a9d8f] font-medium flex items-center gap-1">
+      <span className="text-xs text-[#ff6b6b] font-medium flex items-center gap-1">
         <Upload className="w-3 h-3" /> Choose file
       </span>
       <input
@@ -270,8 +270,8 @@ export default function ProductOptions() {
   return (
     <div className="flex flex-col gap-5">
       {/* Free gift box badge */}
-      <div className="flex items-center gap-2 bg-[#e8f5f4] border border-[#2a9d8f]/30 rounded-xl px-4 py-3">
-        <Gift className="w-5 h-5 text-[#2a9d8f] flex-shrink-0" />
+      <div className="flex items-center gap-2 bg-[#fff0f0] border border-[#ff6b6b]/30 rounded-xl px-4 py-3">
+        <Gift className="w-5 h-5 text-[#ff6b6b] flex-shrink-0" />
         <p className="text-sm text-[#1a6b61] font-medium">
           Complimentary gift box included with every order
         </p>
@@ -288,7 +288,7 @@ export default function ProductOptions() {
           onChange={(e) => setName(e.target.value)}
           placeholder="e.g. Sarah Johnson"
           maxLength={30}
-          className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#2a9d8f] focus:border-transparent placeholder:text-gray-400"
+          className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6b6b] focus:border-transparent placeholder:text-gray-400"
         />
         <p className="text-xs text-gray-400">{name.length}/30 characters</p>
       </div>
@@ -301,7 +301,7 @@ export default function ProductOptions() {
         <select
           value={year}
           onChange={(e) => setYear(e.target.value)}
-          className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#2a9d8f] focus:border-transparent bg-white"
+          className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6b6b] focus:border-transparent bg-white"
         >
           {["2024", "2025", "2026", "2027", "2028"].map((y) => (
             <option key={y} value={y}>
@@ -338,7 +338,7 @@ export default function ProductOptions() {
             Character style <span className="text-red-500">*</span>
           </label>
           {selectedStyle && selectedStyle.price > 0 && (
-            <span className="text-xs text-[#2a9d8f] font-semibold bg-[#e8f5f4] px-2 py-0.5 rounded-full">
+            <span className="text-xs text-[#ff6b6b] font-semibold bg-[#fff0f0] px-2 py-0.5 rounded-full">
               +AU${selectedStyle.price.toFixed(2)}
             </span>
           )}
@@ -368,7 +368,7 @@ export default function ProductOptions() {
             placeholder={`e.g. "Congrats Sarah! We're so proud of everything you've achieved. Class of 2026 🎓"`}
             maxLength={120}
             rows={3}
-            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#2a9d8f] focus:border-transparent resize-none placeholder:text-gray-400"
+            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6b6b] focus:border-transparent resize-none placeholder:text-gray-400"
           />
           <span
             className={`absolute bottom-2.5 right-3 text-xs ${
@@ -403,7 +403,7 @@ export default function ProductOptions() {
               key={opt.id}
               className={`flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-all ${
                 greetingCard === opt.id
-                  ? "border-[#2a9d8f] bg-[#e8f5f4]"
+                  ? "border-[#ff6b6b] bg-[#fff0f0]"
                   : "border-gray-200 hover:border-gray-300"
               }`}
             >
@@ -413,7 +413,7 @@ export default function ProductOptions() {
                 value={opt.id}
                 checked={greetingCard === opt.id}
                 onChange={() => setGreetingCard(opt.id)}
-                className="accent-[#2a9d8f]"
+                className="accent-[#ff6b6b]"
               />
               <span className="text-sm text-gray-700 flex-1">{opt.label}</span>
               <span className="text-sm font-semibold text-gray-800">
@@ -437,7 +437,7 @@ export default function ProductOptions() {
               placeholder="Write a heartfelt message for the graduate..."
               maxLength={200}
               rows={3}
-              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#2a9d8f] focus:border-transparent resize-none placeholder:text-gray-400"
+              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6b6b] focus:border-transparent resize-none placeholder:text-gray-400"
             />
             <span
               className={`absolute bottom-2.5 right-3 text-xs ${
@@ -499,7 +499,7 @@ export default function ProductOptions() {
           className={`w-full py-3.5 rounded-2xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
             addedToCart
               ? "bg-green-500 text-white"
-              : "bg-[#2a9d8f] hover:bg-[#21867a] text-white shadow-md shadow-[#2a9d8f]/30 hover:shadow-[#2a9d8f]/40"
+              : "bg-[#ff6b6b] hover:bg-[#ee5253] text-white shadow-md shadow-[#ff6b6b]/30 hover:shadow-[#ff6b6b]/40"
           }`}
         >
           {addedToCart ? (
@@ -531,7 +531,7 @@ export default function ProductOptions() {
           />
           {wishlisted ? "Saved to Wishlist" : "Add to Wishlist"}
         </button>
-        <button className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#2a9d8f] transition-colors">
+        <button className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#ff6b6b] transition-colors">
           <Share2 className="w-4 h-4" />
           Share
         </button>

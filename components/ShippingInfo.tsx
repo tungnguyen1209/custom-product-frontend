@@ -6,23 +6,23 @@ import { Truck, Clock, RefreshCw, ChevronDown, ChevronUp, Package } from "lucide
 const shippingOptions = [
   {
     id: "standard",
-    name: "Giao hàng tiêu chuẩn",
-    days: "10–12 ngày làm việc",
-    price: "35.000đ",
+    name: "Standard Shipping",
+    days: "10–12 business days",
+    price: "$5.99",
     icon: "📦",
   },
   {
     id: "express",
-    name: "Giao hàng nhanh",
-    days: "6–8 ngày làm việc",
-    price: "55.000đ",
+    name: "Express Shipping",
+    days: "6–8 business days",
+    price: "$12.99",
     icon: "🚀",
   },
   {
     id: "urgent",
-    name: "Giao hàng hỏa tốc",
-    days: "4–6 ngày làm việc",
-    price: "120.000đ",
+    name: "Urgent Shipping",
+    days: "4–6 business days",
+    price: "$24.99",
     icon: "⚡",
   },
 ];
@@ -36,18 +36,18 @@ export default function ShippingInfo() {
       <div className="grid grid-cols-3 divide-x divide-gray-100 bg-gray-50/50">
         <div className="flex flex-col items-center gap-1.5 py-5 px-2 text-center">
           <Truck className="w-5 h-5 text-[#ff6b6b]" />
-          <span className="text-[11px] font-bold text-gray-700 uppercase tracking-tight">Miễn phí ship</span>
-          <span className="text-[10px] text-gray-400">Đơn từ 500k</span>
+          <span className="text-[11px] font-bold text-gray-700 uppercase tracking-tight">Free Shipping</span>
+          <span className="text-[10px] text-gray-400">Orders over $50</span>
         </div>
         <div className="flex flex-col items-center gap-1.5 py-5 px-2 text-center">
           <RefreshCw className="w-5 h-5 text-[#ff6b6b]" />
-          <span className="text-[11px] font-bold text-gray-700 uppercase tracking-tight">Đổi trả 30 ngày</span>
-          <span className="text-[10px] text-gray-400">Yên tâm mua sắm</span>
+          <span className="text-[11px] font-bold text-gray-700 uppercase tracking-tight">30-Day Returns</span>
+          <span className="text-[10px] text-gray-400">Hassle-free policy</span>
         </div>
         <div className="flex flex-col items-center gap-1.5 py-5 px-2 text-center">
           <Package className="w-5 h-5 text-[#ff6b6b]" />
-          <span className="text-[11px] font-bold text-gray-700 uppercase tracking-tight">Hộp quà cao cấp</span>
-          <span className="text-[10px] text-gray-400">Luôn đi kèm</span>
+          <span className="text-[11px] font-bold text-gray-700 uppercase tracking-tight">Premium Gift Box</span>
+          <span className="text-[10px] text-gray-400">Always included</span>
         </div>
       </div>
 
@@ -58,7 +58,7 @@ export default function ShippingInfo() {
       >
         <div className="flex items-center gap-2.5">
           <Clock className="w-4 h-4 text-[#ff6b6b]" />
-          Xem các tùy chọn vận chuyển
+          View shipping options
         </div>
         {expanded ? (
           <ChevronUp className="w-4 h-4 text-gray-400" />
@@ -86,7 +86,7 @@ export default function ShippingInfo() {
           ))}
           <div className="px-5 py-4 bg-[#fff0f0]">
             <p className="text-[11px] text-[#ee5253] leading-relaxed">
-              💝 Đặt hàng trước ngày <strong>20/05/2026</strong> để đảm bảo nhận quà đúng dịp Ngày Của Cha.
+              💝 Order by <strong>May 20th, 2026</strong> to ensure delivery before Father's Day.
             </p>
           </div>
         </div>

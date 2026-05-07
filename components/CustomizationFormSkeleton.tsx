@@ -2,7 +2,7 @@ export default function CustomizationFormSkeleton() {
   return (
     <div className="flex flex-col gap-5 animate-pulse">
       {/* Gift badge */}
-      <div className="h-11 bg-[#e8f5f4] rounded-xl" />
+      <div className="h-11 bg-[#fff0f0] rounded-xl" />
 
       {/* Option rows */}
       {[80, 60, 100, 72, 90].map((w, i) => (

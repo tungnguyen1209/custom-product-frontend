@@ -57,7 +57,7 @@ export default function ProductCard({
             </span>
           )}
           {isNew && (
-            <span className="px-2 py-0.5 bg-[#2a9d8f] text-white text-[11px] font-bold rounded-full shadow-sm">
+            <span className="px-2 py-0.5 bg-[#ff6b6b] text-white text-[11px] font-bold rounded-full shadow-sm">
               NEW
             </span>
           )}
@@ -82,11 +82,11 @@ export default function ProductCard({
 
       {/* ── Info ──────────────────────────────────────────────────────── */}
       <div className="p-3.5 flex flex-col gap-1.5 flex-1">
-        <span className="text-[11px] text-[#2a9d8f] font-semibold uppercase tracking-wider">
+        <span className="text-[11px] text-[#ff6b6b] font-semibold uppercase tracking-wider">
           {category}
         </span>
 
-        <p className="text-sm font-semibold text-gray-800 leading-snug line-clamp-2 group-hover:text-[#2a9d8f] transition-colors duration-200">
+        <p className="text-sm font-semibold text-gray-800 leading-snug line-clamp-2 group-hover:text-[#ff6b6b] transition-colors duration-200">
           {name}
         </p>
 

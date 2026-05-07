@@ -48,7 +48,7 @@ function loadFont(fontFamily?: string, fontUrl?: string): Promise<void> {
   return p;
 }
 
-interface CallieImage {
+interface gifthubImage {
   order: number;
   value: string;
   scaleX: number;
@@ -65,7 +65,7 @@ interface ElementConfig {
   rotation: number;
   imageUrl?: string;
   imageId?: number | string;
-  images?: CallieImage[];
+  images?: gifthubImage[];
   textConfig?: {
     text?: string;
     fill?: string;
@@ -140,11 +140,11 @@ function loadFabricImage(url: string): Promise<fabric.Image | null> {
 
 function getImageUrl(el: TemplateElement): string | undefined {
   const cfg = el.config;
-  if (el.source === "callie") {
-    const callieImg = (cfg.images ?? []).find(
+  if (el.source === "gifthub") {
+    const gifthubImg = (cfg.images ?? []).find(
       (img) => String(img.order) === String(cfg.imageId),
     );
-    return callieImg?.value ?? cfg.imageUrl;
+    return gifthubImg?.value ?? cfg.imageUrl;
   }
   return cfg.staticPath || cfg.imageUrl;
 }
@@ -155,7 +155,7 @@ function elementFingerprint(el: TemplateElement): string {
     return `text|${cfg.textConfig?.text}|${cfg.textConfig?.fill}|${cfg.textConfig?.fontSize}|${cfg.textConfig?.font}|${cfg.textConfig?.multiline}|${cfg.centerX}|${cfg.centerY}|${cfg.sWidth}|${cfg.rotation}`;
   }
   const url = getImageUrl(el);
-  if (el.source === "callie") {
+  if (el.source === "gifthub") {
     const ci = (cfg.images ?? []).find((img) => String(img.order) === String(cfg.imageId));
     return `img|${url}|${ci?.scaleX}|${ci?.scaleY}|${ci?.left}|${ci?.top}|${cfg.centerX}|${cfg.centerY}|${cfg.sWidth}|${cfg.sHeight}|${cfg.rotation}`;
   }
@@ -348,12 +348,12 @@ export default function TemplatePreview() {
         continue;
       }
 
-      /* ── Callie image ──────────────────────────────────────────────── */
-      if (el.source === "callie") {
-        const callieImage = (cfg.images ?? []).find(
+      /* ── gifthub image ──────────────────────────────────────────────── */
+      if (el.source === "gifthub") {
+        const gifthubImage = (cfg.images ?? []).find(
           (img) => String(img.order) === String(cfg.imageId),
         );
-        const url = callieImage?.value ?? cfg.imageUrl;
+        const url = gifthubImage?.value ?? cfg.imageUrl;
         if (!url) continue;
 
         const oImg = await getCachedImage(url);
@@ -362,13 +362,13 @@ export default function TemplatePreview() {
 
         let sWidth: number, sHeight: number, centerX: number, centerY: number;
 
-        if (callieImage?.scaleX !== undefined && callieImage?.scaleY !== undefined) {
+        if (gifthubImage?.scaleX !== undefined && gifthubImage?.scaleY !== undefined) {
           const naturalW = oImg.width ?? 1;
           const naturalH = oImg.height ?? 1;
-          sWidth = naturalW * callieImage.scaleX;
-          sHeight = naturalH * callieImage.scaleY;
-          centerX = sWidth / 2 + (callieImage.left ?? 0);
-          centerY = sHeight / 2 + (callieImage.top ?? 0);
+          sWidth = naturalW * gifthubImage.scaleX;
+          sHeight = naturalH * gifthubImage.scaleY;
+          centerX = sWidth / 2 + (gifthubImage.left ?? 0);
+          centerY = sHeight / 2 + (gifthubImage.top ?? 0);
         } else {
           sWidth = cfg.sWidth ?? (oImg.width ?? 1);
           sHeight = cfg.sHeight ?? (oImg.height ?? 1);

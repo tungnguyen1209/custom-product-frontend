@@ -1,9 +1,9 @@
-import { Globe, Instagram, Facebook, Twitter, Gift } from "lucide-react";
+import { Globe, Link2, X, Music2, Gift } from "lucide-react";
 
 const links = {
-  "Chăm sóc khách hàng": ["Trung tâm trợ giúp", "Thông tin vận chuyển", "Chính sách đổi trả", "Theo dõi đơn hàng", "Liên hệ"],
-  "Về Gifthub": ["Câu chuyện thương hiệu", "Tuyển dụng", "Báo chí", "Phát triển bền vững", "Đối tác"],
-  "Khám phá": ["Quà tặng gia đình", "Quà tặng bạn bè", "Quà tặng thú cưng", "Kỷ niệm ngày cưới", "Quà sinh nhật"],
+  "Customer Care": ["Help Center", "Shipping Info", "Returns & Exchanges", "Track Order", "Contact Us"],
+  "About Gifthub": ["Brand Story", "Careers", "Press", "Sustainability", "Partners"],
+  "Discover": ["Family Gifts", "Friends Gifts", "Pet Gifts", "Anniversary", "Birthday Gifts"],
 };
 
 const paymentIcons = ["💳", "🔒", "✅"];
@@ -24,10 +24,10 @@ export default function Footer() {
               </span>
             </div>
             <p className="text-sm text-gray-400 leading-relaxed mb-6 max-w-xs">
-              Mỗi món quà là một câu chuyện. Gifthub giúp bạn gửi gắm yêu thương qua những sản phẩm cá nhân hóa độc đáo nhất.
+              Every gift tells a story. Gifthub helps you send love through the most unique personalized products.
             </p>
             <div className="flex items-center gap-4 mb-8">
-              {[Instagram, Facebook, Twitter, Globe].map((Icon, i) => (
+              {[Globe, Link2, X, Music2].map((Icon, i) => (
                 <a
                   key={i}
                   href="#"
@@ -68,13 +68,13 @@ export default function Footer() {
           </p>
           <div className="flex items-center gap-6 text-xs text-gray-500">
             <a href="#" className="hover:text-white transition-colors">
-              Chính sách bảo mật
+              Privacy Policy
             </a>
             <a href="#" className="hover:text-white transition-colors">
-              Điều khoản dịch vụ
+              Terms of Service
             </a>
             <a href="#" className="hover:text-white transition-colors">
-              Cài đặt Cookie
+              Cookie Settings
             </a>
           </div>
           <div className="flex items-center gap-3">
