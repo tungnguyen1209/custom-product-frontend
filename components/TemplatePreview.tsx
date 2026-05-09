@@ -73,6 +73,16 @@ interface ElementConfig {
     fontFamily?: string;
     font?: string;
     multiline?: boolean;
+    textAlign?: string;
+    outlineWidth?: number | null;
+    outlineColor?: string | { hex?: string } | null;
+    tracking?: number | null;
+    /* Circular text */
+    horizontalDiameter?: number | null;
+    verticalDiameter?: number | null;
+    startAngle?: number | null;
+    endAngle?: number | null;
+    convex?: boolean | string | null;
   };
   staticPath?: string;
 }
@@ -126,6 +136,322 @@ function placeImage(
   );
 }
 
+function resolveOutlineColor(value: unknown): string | null {
+  if (!value) return null;
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (/^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(trimmed)) return trimmed;
+    try {
+      const parsed = JSON.parse(trimmed) as { hex?: string };
+      return parsed?.hex ?? null;
+    } catch {
+      return trimmed;
+    }
+  }
+  if (typeof value === "object" && value !== null && "hex" in value) {
+    const hex = (value as { hex?: string }).hex;
+    return hex ?? null;
+  }
+  return null;
+}
+
+interface CircularTextInput {
+  text: string;
+  centerX: number;
+  centerY: number;
+  rotationDeg: number;
+  horizontalDiameter: number;
+  verticalDiameter: number;
+  startAngleDeg: number;
+  endAngleDeg: number;
+  isConcave: boolean;
+  fontSize: number;
+  fontFamily: string;
+  fill: string;
+  textAlign?: string;
+  outlineWidth?: number;
+  outlineColor?: string | null;
+  tracking?: number;
+}
+
+function buildArcPath(
+  startAngleDeg: number,
+  endAngleDeg: number,
+  centerX: number,
+  centerY: number,
+  horizontalDiameter: number,
+  verticalDiameter: number,
+  rotationDeg: number,
+  isConcave: boolean,
+): { path: fabric.Path; length: number } {
+  const isCircle = Math.round(horizontalDiameter) === Math.round(verticalDiameter);
+
+  let startX: number;
+  let startY: number;
+  let endX: number;
+  let endY: number;
+  let radiusStart: number;
+  let radiusEnd: number;
+  let pathRotation: number;
+
+  if (isCircle) {
+    const radius = Math.max(horizontalDiameter, verticalDiameter) / 2;
+    radiusStart = radius;
+    radiusEnd = radius;
+    pathRotation = 0;
+    const startAngleRad = (startAngleDeg - 90 + rotationDeg) * Math.PI / 180;
+    const endAngleRad = (endAngleDeg - 90 + rotationDeg) * Math.PI / 180;
+    startX = centerX + radius * Math.cos(startAngleRad);
+    startY = centerY + radius * Math.sin(startAngleRad);
+    endX = centerX + radius * Math.cos(endAngleRad);
+    endY = centerY + radius * Math.sin(endAngleRad);
+  } else {
+    const rx = horizontalDiameter / 2;
+    const ry = verticalDiameter / 2;
+    radiusStart = rx;
+    radiusEnd = ry;
+    pathRotation = rotationDeg;
+
+    const startAngleRad = (startAngleDeg - 90) * Math.PI / 180;
+    const endAngleRad = (endAngleDeg - 90) * Math.PI / 180;
+    const sx = centerX + rx * Math.cos(startAngleRad);
+    const sy = centerY + ry * Math.sin(startAngleRad);
+    const ex = centerX + rx * Math.cos(endAngleRad);
+    const ey = centerY + ry * Math.sin(endAngleRad);
+
+    const rotationRad = rotationDeg * Math.PI / 180;
+    const cos = Math.cos(rotationRad);
+    const sin = Math.sin(rotationRad);
+    const rotate = (x: number, y: number) => {
+      const dx = x - centerX;
+      const dy = y - centerY;
+      return {
+        x: centerX + dx * cos - dy * sin,
+        y: centerY + dx * sin + dy * cos,
+      };
+    };
+    const p1 = rotate(sx, sy);
+    const p2 = rotate(ex, ey);
+    startX = p1.x;
+    startY = p1.y;
+    endX = p2.x;
+    endY = p2.y;
+  }
+
+  const deltaAngle = Math.abs(startAngleDeg - endAngleDeg);
+  const sweepFlag = isConcave ? 1 : 0;
+  let largeArcFlag: number;
+  if (startAngleDeg > endAngleDeg) {
+    largeArcFlag = deltaAngle > 180 ? (isConcave ? 0 : 1) : (isConcave ? 1 : 0);
+  } else {
+    largeArcFlag = deltaAngle > 180 ? (isConcave ? 1 : 0) : (isConcave ? 0 : 1);
+  }
+
+  const pathString = `M ${startX} ${startY} A ${radiusStart} ${radiusEnd} ${pathRotation} ${largeArcFlag} ${sweepFlag} ${endX} ${endY}`;
+  const arcPath = new fabric.Path(pathString, {
+    fill: "",
+    stroke: "transparent",
+    strokeWidth: 1,
+  });
+
+  const fabricUtil = fabric.util as unknown as {
+    getPathSegmentsInfo?: (path: unknown) => Array<{ length?: number }>;
+  };
+  const arcWithPath = arcPath as unknown as {
+    path: unknown;
+    segmentsInfo?: Array<{ length?: number }>;
+  };
+  let length = 0;
+  if (fabricUtil.getPathSegmentsInfo) {
+    const segs = fabricUtil.getPathSegmentsInfo(arcWithPath.path);
+    arcWithPath.segmentsInfo = segs;
+    if (segs.length > 0) length = segs[segs.length - 1].length ?? 0;
+  }
+  return { path: arcPath, length };
+}
+
+function measureCircularTextWidth(input: CircularTextInput): number {
+  const measure = new fabric.Text(input.text, {
+    fontSize: input.fontSize,
+    fontFamily: input.fontFamily,
+  });
+  if (input.tracking) measure.set("charSpacing", input.tracking);
+  const maybeInit = measure as unknown as { initDimensions?: () => void };
+  if (typeof maybeInit.initDimensions === "function") maybeInit.initDimensions();
+  return measure.width ?? 0;
+}
+
+/* Arc length từ một góc xuất phát theo span đã ký (signed degrees). */
+function ellipseArcLengthFromSpan(
+  rx: number,
+  ry: number,
+  startAngleDeg: number,
+  spanDeg: number,
+  steps = 240,
+): number {
+  if (rx === ry) return rx * Math.abs(spanDeg * Math.PI / 180);
+  const startRad = (startAngleDeg - 90) * Math.PI / 180;
+  const spanRad = spanDeg * Math.PI / 180;
+  const dt = spanRad / steps;
+  let sum = 0;
+  for (let i = 0; i < steps; i++) {
+    const t = startRad + dt * (i + 0.5);
+    sum += Math.sqrt((rx * Math.sin(t)) ** 2 + (ry * Math.cos(t)) ** 2);
+  }
+  return sum * Math.abs(dt);
+}
+
+/**
+ * Tính visibleSpan và visibleMid của arc THẬT mà fabric sẽ vẽ
+ * dựa trên cùng truth-table với buildArcPath.
+ */
+function computeVisibleArc(
+  startAngleDeg: number,
+  endAngleDeg: number,
+  isConcave: boolean,
+): { visibleSpan: number; visibleMid: number } {
+  const rawDelta = endAngleDeg - startAngleDeg;
+  const absDelta = Math.abs(rawDelta);
+  const startGreater = startAngleDeg > endAngleDeg;
+  const deltaOver180 = absDelta > 180;
+
+  let isLargeArc: boolean;
+  if (startGreater) {
+    isLargeArc = deltaOver180 ? !isConcave : isConcave;
+  } else {
+    isLargeArc = deltaOver180 ? isConcave : !isConcave;
+  }
+
+  const directSpan = rawDelta;
+  const wrapSpan = rawDelta >= 0 ? rawDelta - 360 : rawDelta + 360;
+  const shortSpan = absDelta < 180 ? directSpan : wrapSpan;
+  const longSpan = absDelta < 180 ? wrapSpan : directSpan;
+  const visibleSpan = isLargeArc ? longSpan : shortSpan;
+  const visibleMid = startAngleDeg + visibleSpan / 2;
+  return { visibleSpan, visibleMid };
+}
+
+function makeCircularText(input: CircularTextInput): fabric.Object {
+  const {
+    text,
+    centerX,
+    centerY,
+    rotationDeg,
+    horizontalDiameter,
+    verticalDiameter,
+    isConcave,
+  } = input;
+  let { startAngleDeg, endAngleDeg } = input;
+
+  /**
+   * Strategy ưu tiên giữ design intent (arc gốc):
+   *   1. Nếu text > arc gốc → shrink fontSize để fit (min = 50% font gốc, abs min 6px).
+   *   2. Nếu sau shrink vẫn chưa fit (font chạm sàn) → expand arc đối xứng,
+   *      soft cap = max(originalSpan × 2, 180°), hard cap 320°.
+   *   3. Nếu vẫn chưa fit → shrink font tiếp xuống abs min 6px.
+   */
+  const textWidth = measureCircularTextWidth(input);
+  const rx = horizontalDiameter / 2;
+  const ry = verticalDiameter / 2;
+  let finalFontSize = input.fontSize;
+  if (rx > 0 && ry > 0 && textWidth > 0) {
+    const arcInfo = computeVisibleArc(startAngleDeg, endAngleDeg, isConcave);
+    const visibleMid = arcInfo.visibleMid;
+    let visibleSpan = arcInfo.visibleSpan;
+    if (Math.abs(visibleSpan) < 0.5) visibleSpan = visibleSpan >= 0 ? 1 : -1;
+
+    const originalSpan = Math.abs(visibleSpan);
+    const initialSegStart = visibleMid - visibleSpan / 2;
+    const originalArcLen = ellipseArcLengthFromSpan(rx, ry, initialSegStart, visibleSpan);
+    const targetWidth = textWidth * 1.04;
+
+    const ABS_MIN_FONT = 6;
+    const SOFT_MIN_FONT = Math.max(ABS_MIN_FONT, Math.floor(input.fontSize * 0.5));
+
+    if (originalArcLen > 0 && targetWidth > originalArcLen) {
+      /* Bước 1: shrink fontSize tới SOFT_MIN_FONT để vừa arc gốc */
+      finalFontSize = Math.max(
+        SOFT_MIN_FONT,
+        Math.floor(input.fontSize * (originalArcLen / textWidth) * 0.96),
+      );
+
+      /* Tính textWidth mới sau shrink (linear theo fontSize ratio) */
+      const shrunkTextWidth = textWidth * (finalFontSize / input.fontSize);
+      const shrunkTarget = shrunkTextWidth * 1.04;
+
+      if (shrunkTarget > originalArcLen) {
+        /* Bước 2: font đã chạm sàn 50% — expand arc để đỡ phần còn thiếu */
+        const SOFT_MAX = Math.min(320, Math.max(originalSpan * 2, 180));
+        for (let iter = 0; iter < 6; iter++) {
+          if (Math.abs(visibleSpan) >= SOFT_MAX) break;
+          const ss = visibleMid - visibleSpan / 2;
+          const arcLen = ellipseArcLengthFromSpan(rx, ry, ss, visibleSpan);
+          if (arcLen >= shrunkTarget) break;
+          const sign = Math.sign(visibleSpan) || 1;
+          const ratio = arcLen > 0 ? shrunkTarget / arcLen : 2;
+          const newSpanMag = Math.min(SOFT_MAX, Math.abs(visibleSpan) * ratio);
+          visibleSpan = newSpanMag * sign;
+        }
+
+        /* Bước 3: nếu sau expand vẫn chưa đủ → shrink font tiếp xuống abs min */
+        const finalSegStart = visibleMid - visibleSpan / 2;
+        const finalArcLen = ellipseArcLengthFromSpan(rx, ry, finalSegStart, visibleSpan);
+        if (finalArcLen > 0 && shrunkTarget > finalArcLen) {
+          finalFontSize = Math.max(
+            ABS_MIN_FONT,
+            Math.floor(input.fontSize * (finalArcLen / textWidth) * 0.96),
+          );
+        }
+      }
+    }
+
+    startAngleDeg = visibleMid - visibleSpan / 2;
+    endAngleDeg = visibleMid + visibleSpan / 2;
+  }
+
+  const arc = buildArcPath(
+    startAngleDeg,
+    endAngleDeg,
+    centerX,
+    centerY,
+    horizontalDiameter,
+    verticalDiameter,
+    rotationDeg,
+    isConcave,
+  );
+
+  const arcPath = arc.path;
+
+  const textOptions = {
+    path: arcPath,
+    top: arcPath.top,
+    left: arcPath.left,
+    fontSize: finalFontSize,
+    fontFamily: input.fontFamily,
+    fill: input.fill,
+    selectable: false,
+    evented: false,
+  } as unknown as fabric.ITextOptions;
+  const textObject = new fabric.Text(text, textOptions);
+
+  if (input.textAlign) {
+    textObject.set("textAlign", input.textAlign);
+  }
+  if (input.tracking) {
+    textObject.set("charSpacing", input.tracking);
+  }
+  if (input.outlineColor) {
+    textObject.set("stroke", input.outlineColor);
+  }
+  if (input.outlineWidth && input.outlineWidth > 0) {
+    textObject.set("strokeWidth", input.outlineWidth);
+    textObject.set("paintFirst", "stroke");
+  }
+
+  textObject.setCoords();
+  return textObject;
+}
+
 function loadFabricImage(url: string): Promise<fabric.Image | null> {
   return new Promise((resolve) => {
     fabric.Image.fromURL(
@@ -140,7 +466,7 @@ function loadFabricImage(url: string): Promise<fabric.Image | null> {
 
 function getImageUrl(el: TemplateElement): string | undefined {
   const cfg = el.config;
-  if (el.source === "gifthub") {
+  if (el.source === "callie") {
     const gifthubImg = (cfg.images ?? []).find(
       (img) => String(img.order) === String(cfg.imageId),
     );
@@ -151,11 +477,16 @@ function getImageUrl(el: TemplateElement): string | undefined {
 
 function elementFingerprint(el: TemplateElement): string {
   const cfg = el.config;
-  if (el.type === "text_box" || el.type === "text_box_circular" || el.type === "text") {
+  if (el.type === "text_box_circular") {
+    const tc = cfg.textConfig;
+    const outline = typeof tc?.outlineColor === "object" ? tc?.outlineColor?.hex : tc?.outlineColor;
+    return `tc|${tc?.text}|${tc?.fill}|${tc?.fontSize}|${tc?.font}|${tc?.textAlign}|${tc?.outlineWidth}|${outline}|${tc?.tracking}|${tc?.horizontalDiameter}|${tc?.verticalDiameter}|${tc?.startAngle}|${tc?.endAngle}|${tc?.convex}|${cfg.centerX}|${cfg.centerY}|${cfg.rotation}`;
+  }
+  if (el.type === "text_box" || el.type === "text") {
     return `text|${cfg.textConfig?.text}|${cfg.textConfig?.fill}|${cfg.textConfig?.fontSize}|${cfg.textConfig?.font}|${cfg.textConfig?.multiline}|${cfg.centerX}|${cfg.centerY}|${cfg.sWidth}|${cfg.rotation}`;
   }
   const url = getImageUrl(el);
-  if (el.source === "gifthub") {
+  if (el.source === "callie") {
     const ci = (cfg.images ?? []).find((img) => String(img.order) === String(cfg.imageId));
     return `img|${url}|${ci?.scaleX}|${ci?.scaleY}|${ci?.left}|${ci?.top}|${cfg.centerX}|${cfg.centerY}|${cfg.sWidth}|${cfg.sHeight}|${cfg.rotation}`;
   }
@@ -289,8 +620,45 @@ export default function TemplatePreview() {
 
       const cfg = el.config;
 
+      /* ── Circular text on ellipse path ─────────────────────────────── */
+      if (el.type === "text_box_circular") {
+        const tc = cfg.textConfig;
+        const text = tc?.text ?? "";
+        if (!text.trim()) continue;
+
+        const horizontalDiameter = (tc?.horizontalDiameter ?? 0) * scale;
+        const verticalDiameter = (tc?.verticalDiameter ?? 0) * scale;
+        if (horizontalDiameter <= 0 || verticalDiameter <= 0) continue;
+
+        await loadFont(tc?.font, tc?.font);
+        if (myRender !== renderCounterRef.current) return;
+
+        const obj = makeCircularText({
+          text,
+          centerX: (cfg.centerX ?? 0) * scale,
+          centerY: (cfg.centerY ?? 0) * scale,
+          rotationDeg: cfg.rotation ?? 0,
+          horizontalDiameter,
+          verticalDiameter,
+          startAngleDeg: tc?.startAngle ?? 0,
+          endAngleDeg: tc?.endAngle ?? 360,
+          isConcave: tc?.convex === false || tc?.convex === "false",
+          fontSize: (tc?.fontSize ?? 16) * scale,
+          fontFamily: tc?.font || tc?.fontFamily || "sans-serif",
+          fill: tc?.fill ?? "#000000",
+          textAlign: tc?.textAlign,
+          outlineWidth: (tc?.outlineWidth ?? 0) * scale,
+          outlineColor: resolveOutlineColor(tc?.outlineColor),
+          tracking: tc?.tracking ?? undefined,
+        });
+
+        objectMap.set(elId, { fingerprint: fp, fabricObj: obj });
+        pendingAdds.push({ id: elId, order: el.order, obj });
+        continue;
+      }
+
       /* ── Text ──────────────────────────────────────────────────────── */
-      if (el.type === "text_box" || el.type === "text_box_circular" || el.type === "text") {
+      if (el.type === "text_box" || el.type === "text") {
         const text = cfg.textConfig?.text ?? "";
         if (!text.trim()) continue;
         await loadFont(cfg.textConfig?.font, cfg.textConfig?.font);
@@ -348,8 +716,8 @@ export default function TemplatePreview() {
         continue;
       }
 
-      /* ── gifthub image ──────────────────────────────────────────────── */
-      if (el.source === "gifthub") {
+      /* ── callie image ──────────────────────────────────────────────── */
+      if (el.source === "callie") {
         const gifthubImage = (cfg.images ?? []).find(
           (img) => String(img.order) === String(cfg.imageId),
         );
