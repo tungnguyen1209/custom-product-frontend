@@ -13,13 +13,30 @@ import RelatedProducts from "@/components/RelatedProducts";
 import Footer from "@/components/Footer";
 import StarRating from "@/components/StarRating";
 import StickyPreviewWrapper from "@/components/StickyPreviewWrapper";
+import {
+  getProduct,
+  getProductCustomization,
+  ProductBasicInfo,
+  ProductCustomizationData,
+} from "@/lib/api";
 
 interface Props {
   params: Promise<{ productSlug: string }>;
 }
 
+function formatPrice(price: number | string): string {
+  const num = typeof price === "string" ? Number(price) : price;
+  if (Number.isNaN(num)) return "";
+  return `AU$${num.toFixed(2)}`;
+}
+
 export default function ProductPage({ params }: Props) {
   const [productId, setProductId] = useState<string | null>(null);
+  const [product, setProduct] = useState<ProductBasicInfo | null>(null);
+  const [customization, setCustomization] =
+    useState<ProductCustomizationData | null>(null);
+  const [productError, setProductError] = useState(false);
+  const [customizationError, setCustomizationError] = useState(false);
 
   useEffect(() => {
     params.then((p) => {
@@ -28,12 +45,41 @@ export default function ProductPage({ params }: Props) {
     });
   }, [params]);
 
+  useEffect(() => {
+    if (!productId) return;
+    let cancelled = false;
+
+    // Two parallel requests: basic info + customization (options/templates)
+    getProduct(productId)
+      .then((data) => {
+        if (!cancelled) setProduct(data);
+      })
+      .catch(() => {
+        if (!cancelled) setProductError(true);
+      });
+
+    getProductCustomization(productId)
+      .then((data) => {
+        if (!cancelled) setCustomization(data);
+      })
+      .catch(() => {
+        if (!cancelled) setCustomizationError(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [productId]);
+
   const handleZoom = () => {
     window.dispatchEvent(new CustomEvent("wm-request-preview"));
   };
 
   if (productId === null) return null;
   if (!productId) notFound();
+
+  const productName = product?.name ?? `Product ${productId}`;
+  const galleryImages = product?.gallery ?? [];
 
   return (
     <>
@@ -53,7 +99,7 @@ export default function ProductPage({ params }: Props) {
             ))}
             <span className="flex items-center gap-1 text-gray-600">
               <ChevronRight className="w-3 h-3" />
-              <span className="truncate max-w-[200px]">Product {productId}</span>
+              <span className="truncate max-w-[200px]">{productName}</span>
             </span>
           </nav>
         </div>
@@ -62,12 +108,12 @@ export default function ProductPage({ params }: Props) {
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 xl:gap-16 items-start">
             {/* Left – Gallery (Sticky) */}
-            <StickyPreviewWrapper 
+            <StickyPreviewWrapper
               onClick={handleZoom}
               className="sticky top-24 lg:top-32 z-40 bg-white lg:bg-transparent -mx-4 lg:mx-0 shadow-md lg:shadow-none cursor-pointer group"
             >
-              <TemplatePreviewLoader />
-              
+              <TemplatePreviewLoader gallery={galleryImages} alt={productName} />
+
               {/* Desktop zoom hint */}
               <div className="hidden lg:group-hover:flex absolute inset-0 items-center justify-center bg-black/5 transition-colors rounded-2xl pointer-events-none">
                  <div className="bg-white/90 p-3 rounded-full shadow-lg scale-90 group-hover:scale-100 transition-transform">
@@ -98,7 +144,7 @@ export default function ProductPage({ params }: Props) {
               </div>
 
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 leading-snug">
-                Product {productId}
+                {productError ? `Product ${productId}` : productName}
               </h1>
 
               <div className="flex items-center gap-3 flex-wrap">
@@ -109,14 +155,22 @@ export default function ProductPage({ params }: Props) {
               </div>
 
               <div className="flex items-baseline gap-3">
-                <span className="text-3xl font-bold text-gray-900">AU$37.00</span>
+                <span className="text-3xl font-bold text-gray-900">
+                  {product ? formatPrice(product.basePrice) : "AU$37.00"}
+                </span>
                 <span className="text-sm text-gray-400 line-through">AU$52.00</span>
                 <span className="text-sm font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full">
                   29% OFF
                 </span>
               </div>
 
-              <CustomizationFormLoader productId={productId} />
+              <CustomizationFormLoader
+                productId={productId}
+                productName={productName}
+                basePrice={product ? Number(product.basePrice) : 0}
+                customization={customization}
+                customizationError={customizationError}
+              />
             </div>
           </div>
         </section>
@@ -130,7 +184,7 @@ export default function ProductPage({ params }: Props) {
             </div>
             <div className="flex flex-col gap-12">
               <ShippingInfo />
-              <ProductDescription />
+              <ProductDescription description={product?.description ?? null} />
             </div>
           </div>
         </section>

@@ -3,74 +3,42 @@
 import { useState, useRef } from "react";
 import { ChevronLeft, ChevronRight, ZoomIn } from "lucide-react";
 
-const productImages = [
-  {
-    id: 1,
-    alt: "Graduation sash with cartoon character – front view",
-    bg: "from-purple-100 to-pink-100",
-    emoji: "🎓",
-    label: "Front View",
-  },
-  {
-    id: 2,
-    alt: "Graduation sash personalised with name",
-    bg: "from-teal-100 to-cyan-100",
-    emoji: "✨",
-    label: "Name Detail",
-  },
-  {
-    id: 3,
-    alt: "Graduation sash worn by graduate",
-    bg: "from-yellow-100 to-orange-100",
-    emoji: "🎉",
-    label: "Worn Style",
-  },
-  {
-    id: 4,
-    alt: "Graduation sash – gold cartoon character",
-    bg: "from-blue-100 to-indigo-100",
-    emoji: "⭐",
-    label: "Gold Edition",
-  },
-  {
-    id: 5,
-    alt: "Graduation sash gift packaging",
-    bg: "from-rose-100 to-pink-100",
-    emoji: "🎁",
-    label: "Gift Box",
-  },
-  {
-    id: 6,
-    alt: "Graduation sash close-up embroidery",
-    bg: "from-green-100 to-emerald-100",
-    emoji: "🪡",
-    label: "Embroidery",
-  },
-  {
-    id: 7,
-    alt: "Graduation sash – size reference",
-    bg: "from-violet-100 to-purple-100",
-    emoji: "📏",
-    label: "Size Guide",
-  },
-  {
-    id: 8,
-    alt: "Graduation sash – care instructions",
-    bg: "from-amber-100 to-yellow-100",
-    emoji: "💝",
-    label: "Keepsake",
-  },
+const fallbackImages = [
+  { id: 1, alt: "Front view", bg: "from-purple-100 to-pink-100", emoji: "🎓", label: "Front View" },
+  { id: 2, alt: "Name detail", bg: "from-teal-100 to-cyan-100", emoji: "✨", label: "Name Detail" },
+  { id: 3, alt: "Worn style", bg: "from-yellow-100 to-orange-100", emoji: "🎉", label: "Worn Style" },
+  { id: 4, alt: "Gold edition", bg: "from-blue-100 to-indigo-100", emoji: "⭐", label: "Gold Edition" },
 ];
+
+interface GalleryEntry {
+  id: number;
+  url?: string;
+  alt: string;
+  bg?: string;
+  emoji?: string;
+  label?: string;
+}
 
 export default function ProductGallery({
   showCanvas = false,
   setShowCanvas = () => {},
   canvas = null,
+  images,
+  alt = "Product image",
 }: {
   showCanvas?: boolean;
   setShowCanvas?: (v: boolean) => void;
   canvas?: React.ReactNode;
+  images?: string[];
+  alt?: string;
 }) {
+  const productImages: GalleryEntry[] = images && images.length > 0
+    ? images.map((url, i) => ({
+        id: i + 1,
+        url,
+        alt: `${alt} ${i + 1}`,
+      }))
+    : fallbackImages;
   const [activeIndex, setActiveIndex] = useState(0);
   const [zoomed, setZoomed] = useState(false);
   const dragStartX = useRef<number | null>(null);
@@ -163,16 +131,25 @@ export default function ProductGallery({
             {productImages.map((img) => (
               <div
                 key={img.id}
-                className={`w-full h-full flex-shrink-0 bg-gradient-to-br ${img.bg} flex items-center justify-center cursor-zoom-in`}
+                className={`w-full h-full flex-shrink-0 ${img.url ? "bg-white" : `bg-gradient-to-br ${img.bg}`} flex items-center justify-center cursor-zoom-in`}
                 onClick={() => setZoomed(!zoomed)}
               >
-                <div className="text-center">
-                  <div className="text-8xl mb-4">{img.emoji}</div>
-                  <p className="text-gray-500 text-sm font-medium">{img.label}</p>
-                  <p className="text-gray-400 text-xs mt-1 max-w-[180px] mx-auto">
-                    {img.alt}
-                  </p>
-                </div>
+                {img.url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={img.url}
+                    alt={img.alt}
+                    className="w-full h-full object-contain"
+                  />
+                ) : (
+                  <div className="text-center">
+                    <div className="text-8xl mb-4">{img.emoji}</div>
+                    <p className="text-gray-500 text-sm font-medium">{img.label}</p>
+                    <p className="text-gray-400 text-xs mt-1 max-w-[180px] mx-auto">
+                      {img.alt}
+                    </p>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -225,11 +202,20 @@ export default function ProductGallery({
                 : "ring-1 ring-gray-200 hover:ring-[#ff6b6b] opacity-70 hover:opacity-100"
             }`}
           >
-            <div
-              className={`w-full h-full bg-gradient-to-br ${img.bg} flex items-center justify-center`}
-            >
-              <span className="text-2xl">{img.emoji}</span>
-            </div>
+            {img.url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={img.url}
+                alt={img.alt}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div
+                className={`w-full h-full bg-gradient-to-br ${img.bg} flex items-center justify-center`}
+              >
+                <span className="text-2xl">{img.emoji}</span>
+              </div>
+            )}
           </button>
         ))}
       </div>

@@ -530,32 +530,90 @@ function broadcastTemplate(svc: any, isUserInteraction = false) {
 
 /* ─── Main component ───────────────────────────────────────────────────── */
 
-const BASE_URL = "https://variant-service.printerval.com/product/customization";
+import { CUSTOMIZATION_BASE_URL } from "@/lib/api";
 
+const BASE_URL = CUSTOMIZATION_BASE_URL;
+
+// Defensive normalization: backend should already send `elements` as an array,
+// but accept a Record map too (older cached rows) just in case.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function deriveTemplateUuid(productResult: any): string {
-  const template = productResult?.template;
-  if (template?.uuid) return template.uuid;
-
-  const options = productResult?.options ?? [];
-  for (const option of options) {
-    for (const functionItem of (option.functionItems ?? [])) {
-      if (functionItem.type === "change-template") {
-        if (option.type === "swatch") return option.swatchValues?.[0]?.templateId ?? "";
-        if (option.type === "dropdown") return option.dropdownValues?.[0]?.templateId ?? "";
-      }
-    }
+function normalizeTemplate(template: any): any | null {
+  if (!template) return null;
+  const els = template.elements;
+  if (els && !Array.isArray(els) && typeof els === "object") {
+    return { ...template, elements: Object.values(els) };
   }
-  return "";
+  return template;
+}
+
+// Pick initial template from the customization payload.
+// Prefers the inline `template` field; falls back to lazy-fetching by id.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function resolveInitialTemplate(customization: any): Promise<any | null> {
+  if (customization?.template) return normalizeTemplate(customization.template);
+
+  const initId =
+    customization?.initialTemplateId ?? customization?.initialtemplateId;
+  if (!initId) return null;
+
+  try {
+    const res = await fetch(`${CUSTOMIZATION_BASE_URL}/template/${initId}`);
+    if (!res.ok) return null;
+    const json = await res.json();
+    return normalizeTemplate(json?.result);
+  } catch {
+    return null;
+  }
 }
 
 import { useCart } from "@/context/CartContext";
+import { getProductCustomization, type ProductCustomizationData } from "@/lib/api";
 
-export default function CustomizationForm({ productId }: { productId: string }) {
+interface CustomizationFormProps {
+  productId: string;
+  productName?: string;
+  basePrice?: number;
+  customization?: ProductCustomizationData | null;
+  customizationError?: boolean;
+}
+
+export default function CustomizationForm({
+  productId,
+  productName = `Product ${productId}`,
+  basePrice = 0,
+  customization: customizationProp,
+  customizationError: customizationErrorProp,
+}: CustomizationFormProps) {
+  const [internalCustomization, setInternalCustomization] =
+    useState<ProductCustomizationData | null>(null);
+  const [internalCustomizationError, setInternalCustomizationError] =
+    useState(false);
+
+  // If parent didn't supply customization, fetch it ourselves so this
+  // component remains usable standalone (e.g. on the home page showcase).
+  useEffect(() => {
+    if (customizationProp !== undefined || customizationErrorProp) return;
+    let cancelled = false;
+    getProductCustomization(productId)
+      .then((data) => {
+        if (!cancelled) setInternalCustomization(data);
+      })
+      .catch(() => {
+        if (!cancelled) setInternalCustomizationError(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [productId, customizationProp, customizationErrorProp]);
+
+  const customization =
+    customizationProp !== undefined ? customizationProp : internalCustomization;
+  const customizationError = customizationErrorProp || internalCustomizationError;
   const { addItem } = useCart();
   const [options, setOptions] = useState<IOption[]>([]);
   const [ready, setReady] = useState(false);
   const [fetchError, setFetchError] = useState(false);
+  const [errorDetail, setErrorDetail] = useState<string | null>(null);
   const [processingKey, setProcessingKey] = useState<string | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const serviceRef = useRef<any>(null);
@@ -566,26 +624,26 @@ export default function CustomizationForm({ productId }: { productId: string }) 
   const [added, setAdded] = useState(false);
 
   const handleAdd = useCallback(async () => {
-    const customization: Record<string, any> = {};
+    const selected: Record<string, any> = {};
     options.forEach(opt => {
       if (opt.currentValue) {
-        customization[opt.label] = opt.currentValue;
+        selected[opt.label] = opt.currentValue;
       }
     });
 
     try {
       await addItem({
         productId: parseInt(productId),
-        productName: `Personalized Throw Pillow`,
-        unitPrice: 450000,
-        customization,
+        productName,
+        unitPrice: basePrice > 0 ? Math.round(basePrice * 100) : 450000,
+        customization: selected,
       });
       setAdded(true);
       setTimeout(() => setAdded(false), 2500);
     } catch (err) {
       console.error('Failed to add to cart:', err);
     }
-  }, [addItem, productId, options]);
+  }, [addItem, productId, options, productName, basePrice]);
 
   const handlePreviewRequest = useCallback(() => {
     window.dispatchEvent(new CustomEvent("wm-request-preview"));
@@ -603,34 +661,34 @@ export default function CustomizationForm({ productId }: { productId: string }) 
     return () => window.removeEventListener("wm-show-preview", onShowPreview);
   }, []);
 
-  /* Fetch data + init WM service on mount (client-only, no SSR) */
+  /* Init WM service when customization data arrives (client-only, no SSR) */
   useEffect(() => {
+    if (customizationError) {
+      setFetchError(true);
+      return;
+    }
+    if (!customization) return;
+
     let cancelled = false;
 
     async function init() {
       try {
-        const productRes = await fetch(`${BASE_URL}/${productId}`);
-        const productJson = await productRes.json();
+        const rawOptions = customization?.options ?? [];
+        const rawTemplate = await resolveInitialTemplate(customization);
 
         if (cancelled) return;
 
-        const productResult = productJson?.result ?? {};
-        const rawOptions = productResult.options ?? [];
-        const templateUuid = deriveTemplateUuid(productResult);
-
-        if (!templateUuid || !rawOptions.length) {
-          setFetchError(true);
-          return;
-        }
-
-        const templateRes = await fetch(`${BASE_URL}/template/${templateUuid}`);
-        const templateJson = await templateRes.json();
-
-        if (cancelled) return;
-
-        const rawTemplate = templateJson?.result ?? null;
-
-        if (!rawTemplate) {
+        if (!rawTemplate || !rawOptions.length) {
+          console.error("[CustomizationForm] Missing template or options", {
+            hasTemplate: !!rawTemplate,
+            optionsCount: rawOptions.length,
+            customization,
+          });
+          setErrorDetail(
+            !rawTemplate
+              ? "Không tìm được template cho sản phẩm"
+              : "Không có options customization",
+          );
           setFetchError(true);
           return;
         }
@@ -651,14 +709,20 @@ export default function CustomizationForm({ productId }: { productId: string }) 
           setReady(true);
           broadcastTemplate(svc);
         }
-      } catch {
-        if (!cancelled) setFetchError(true);
+      } catch (err) {
+        console.error("[CustomizationForm] Init failed:", err, {
+          customization,
+        });
+        if (!cancelled) {
+          setErrorDetail(err instanceof Error ? err.message : String(err));
+          setFetchError(true);
+        }
       }
     }
 
     init();
     return () => { cancelled = true; };
-  }, [productId]);
+  }, [customization, customizationError]);
 
   /* Sync options state after any mutation */
   const syncOptions = useCallback(() => {
@@ -741,9 +805,14 @@ export default function CustomizationForm({ productId }: { productId: string }) 
         </div>
 
         {fetchError ? (
-          <p className="text-sm text-red-500 font-bold px-1">
-            Could not load customization options. Please refresh.
-          </p>
+          <div className="px-1">
+            <p className="text-sm text-red-500 font-bold">
+              Could not load customization options. Please refresh.
+            </p>
+            {errorDetail && (
+              <p className="text-xs text-gray-500 mt-1">{errorDetail}</p>
+            )}
+          </div>
         ) : (
           <div className="flex items-center gap-4 py-8 text-gray-400 text-sm font-bold">
             <Loader2 className="w-6 h-6 animate-spin text-[#ff6b6b]" />

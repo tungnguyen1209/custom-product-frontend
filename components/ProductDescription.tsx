@@ -34,30 +34,40 @@ function AccordionItem({ title, children, defaultOpen = false }: AccordionItemPr
   );
 }
 
-export default function ProductDescription() {
+interface ProductDescriptionProps {
+  description?: string | null;
+}
+
+export default function ProductDescription({ description }: ProductDescriptionProps = {}) {
   return (
     <div className="border border-gray-100 rounded-2xl px-5 py-1">
       <AccordionItem title="Product Description" defaultOpen>
-        <p className="mb-3">
-          Celebrate your graduate&apos;s big achievement with this beautifully
-          personalised graduation sash featuring an adorable cartoon character
-          design. Customised with the graduate&apos;s name and graduation year,
-          it&apos;s a keepsake they&apos;ll cherish for years to come.
-        </p>
-        <ul className="space-y-2 list-none">
-          {[
-            "Unique cartoon character design inspired by the graduate",
-            "Personalised with name and graduation year",
-            "Perfect for Class of 2026 ceremonies",
-            "Makes a wonderful gift for friends and family to give",
-            "Suitable for high school, university, and college graduates",
-          ].map((point) => (
-            <li key={point} className="flex items-start gap-2">
-              <span className="text-[#ff6b6b] mt-0.5 flex-shrink-0">✓</span>
-              {point}
-            </li>
-          ))}
-        </ul>
+        {description ? (
+          <p className="mb-3 whitespace-pre-line">{description}</p>
+        ) : (
+          <>
+            <p className="mb-3">
+              Celebrate your graduate&apos;s big achievement with this beautifully
+              personalised graduation sash featuring an adorable cartoon character
+              design. Customised with the graduate&apos;s name and graduation year,
+              it&apos;s a keepsake they&apos;ll cherish for years to come.
+            </p>
+            <ul className="space-y-2 list-none">
+              {[
+                "Unique cartoon character design inspired by the graduate",
+                "Personalised with name and graduation year",
+                "Perfect for Class of 2026 ceremonies",
+                "Makes a wonderful gift for friends and family to give",
+                "Suitable for high school, university, and college graduates",
+              ].map((point) => (
+                <li key={point} className="flex items-start gap-2">
+                  <span className="text-[#ff6b6b] mt-0.5 flex-shrink-0">✓</span>
+                  {point}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
       </AccordionItem>
 
       <AccordionItem title="Specifications">

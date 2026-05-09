@@ -9,7 +9,12 @@ const TemplatePreview = dynamic(
   { ssr: false, loading: () => <div className="w-full aspect-square rounded-2xl bg-gray-100 animate-pulse" /> },
 );
 
-export default function TemplatePreviewLoader() {
+interface Props {
+  gallery?: string[];
+  alt?: string;
+}
+
+export default function TemplatePreviewLoader({ gallery, alt }: Props) {
   const [showCanvas, setShowCanvas] = useState(false);
 
   useEffect(() => {
@@ -24,5 +29,13 @@ export default function TemplatePreviewLoader() {
     return () => window.removeEventListener("wm-template-update", handleUpdate);
   }, []);
 
-  return <ProductGallery showCanvas={showCanvas} setShowCanvas={setShowCanvas} canvas={<TemplatePreview />} />;
+  return (
+    <ProductGallery
+      showCanvas={showCanvas}
+      setShowCanvas={setShowCanvas}
+      canvas={<TemplatePreview />}
+      images={gallery}
+      alt={alt}
+    />
+  );
 }
