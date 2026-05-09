@@ -57,6 +57,12 @@ interface gifthubImage {
   top: number;
 }
 
+interface FontEntry {
+  id?: string;
+  order: number | string;
+  value: string;
+}
+
 interface ElementConfig {
   sWidth: number;
   sHeight: number;
@@ -66,6 +72,8 @@ interface ElementConfig {
   imageUrl?: string;
   imageId?: number | string;
   images?: gifthubImage[];
+  fonts?: FontEntry[];
+  fontId?: number | string;
   textConfig?: {
     text?: string;
     fill?: string;
@@ -134,6 +142,16 @@ function placeImage(
     "center",
     "center",
   );
+}
+
+function resolveFontUrl(cfg: ElementConfig): string | undefined {
+  const direct = cfg.textConfig?.font;
+  if (direct) return direct;
+  if (cfg.fontId == null || !cfg.fonts?.length) return undefined;
+  const match = cfg.fonts.find(
+    (f) => String(f.order) === String(cfg.fontId),
+  );
+  return match?.value;
 }
 
 function resolveOutlineColor(value: unknown): string | null {
@@ -480,10 +498,10 @@ function elementFingerprint(el: TemplateElement): string {
   if (el.type === "text_box_circular") {
     const tc = cfg.textConfig;
     const outline = typeof tc?.outlineColor === "object" ? tc?.outlineColor?.hex : tc?.outlineColor;
-    return `tc|${tc?.text}|${tc?.fill}|${tc?.fontSize}|${tc?.font}|${tc?.textAlign}|${tc?.outlineWidth}|${outline}|${tc?.tracking}|${tc?.horizontalDiameter}|${tc?.verticalDiameter}|${tc?.startAngle}|${tc?.endAngle}|${tc?.convex}|${cfg.centerX}|${cfg.centerY}|${cfg.rotation}`;
+    return `tc|${tc?.text}|${tc?.fill}|${tc?.fontSize}|${tc?.font}|${cfg.fontId}|${tc?.textAlign}|${tc?.outlineWidth}|${outline}|${tc?.tracking}|${tc?.horizontalDiameter}|${tc?.verticalDiameter}|${tc?.startAngle}|${tc?.endAngle}|${tc?.convex}|${cfg.centerX}|${cfg.centerY}|${cfg.rotation}`;
   }
   if (el.type === "text_box" || el.type === "text") {
-    return `text|${cfg.textConfig?.text}|${cfg.textConfig?.fill}|${cfg.textConfig?.fontSize}|${cfg.textConfig?.font}|${cfg.textConfig?.multiline}|${cfg.centerX}|${cfg.centerY}|${cfg.sWidth}|${cfg.rotation}`;
+    return `text|${cfg.textConfig?.text}|${cfg.textConfig?.fill}|${cfg.textConfig?.fontSize}|${cfg.textConfig?.font}|${cfg.fontId}|${cfg.textConfig?.multiline}|${cfg.centerX}|${cfg.centerY}|${cfg.sWidth}|${cfg.rotation}`;
   }
   const url = getImageUrl(el);
   if (el.source === "callie") {
@@ -630,7 +648,8 @@ export default function TemplatePreview() {
         const verticalDiameter = (tc?.verticalDiameter ?? 0) * scale;
         if (horizontalDiameter <= 0 || verticalDiameter <= 0) continue;
 
-        await loadFont(tc?.font, tc?.font);
+        const fontUrl = resolveFontUrl(cfg);
+        await loadFont(fontUrl, fontUrl);
         if (myRender !== renderCounterRef.current) return;
 
         const obj = makeCircularText({
@@ -644,7 +663,7 @@ export default function TemplatePreview() {
           endAngleDeg: tc?.endAngle ?? 360,
           isConcave: tc?.convex === false || tc?.convex === "false",
           fontSize: (tc?.fontSize ?? 16) * scale,
-          fontFamily: tc?.font || tc?.fontFamily || "sans-serif",
+          fontFamily: fontUrl || tc?.fontFamily || "sans-serif",
           fill: tc?.fill ?? "#000000",
           textAlign: tc?.textAlign,
           outlineWidth: (tc?.outlineWidth ?? 0) * scale,
@@ -661,7 +680,8 @@ export default function TemplatePreview() {
       if (el.type === "text_box" || el.type === "text") {
         const text = cfg.textConfig?.text ?? "";
         if (!text.trim()) continue;
-        await loadFont(cfg.textConfig?.font, cfg.textConfig?.font);
+        const fontUrl = resolveFontUrl(cfg);
+        await loadFont(fontUrl, fontUrl);
         if (myRender !== renderCounterRef.current) return;
         let isMultiline = cfg.textConfig?.multiline;
         if (!isMultiline && cfg.textConfig?.text?.toString().trim().includes('\n')) {
@@ -670,7 +690,7 @@ export default function TemplatePreview() {
 
         const configs = {
           fontSize: (cfg.textConfig?.fontSize ?? 16) * scale,
-          fontFamily: cfg.textConfig?.font || "sans-serif",
+          fontFamily: fontUrl || cfg.textConfig?.fontFamily || "sans-serif",
           fill: cfg.textConfig?.fill ?? "#000000",
           angle: cfg.rotation ?? 0,
           selectable: false,
