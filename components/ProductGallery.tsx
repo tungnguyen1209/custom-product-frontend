@@ -100,9 +100,43 @@ export default function ProductGallery({
   };
 
   return (
-    <div className="flex flex-col gap-3 select-none">
+    <div className="flex flex-col lg:flex-row gap-3 select-none">
+      {/* Thumbnail strip — vertical column on desktop (left), hidden on mobile */}
+      <div className="hidden lg:flex lg:flex-col gap-2 overflow-y-auto scrollbar-hide p-1 max-h-[var(--gallery-h,100%)] lg:max-h-[640px] lg:w-20 flex-shrink-0">
+        {productImages.map((img, i) => (
+          <button
+            key={img.id}
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowCanvas(false);
+              setActiveIndex(i);
+            }}
+            className={`flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden transition-all ${
+              i === activeIndex
+                ? "ring-2 ring-[#ff6b6b] ring-offset-1"
+                : "ring-1 ring-gray-200 hover:ring-[#ff6b6b] opacity-70 hover:opacity-100"
+            }`}
+          >
+            {img.url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={img.url}
+                alt={img.alt}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div
+                className={`w-full h-full bg-gradient-to-br ${img.bg} flex items-center justify-center`}
+              >
+                <span className="text-2xl">{img.emoji}</span>
+              </div>
+            )}
+          </button>
+        ))}
+      </div>
+
       {/* Main image / Canvas Container */}
-      <div className="relative rounded-2xl overflow-hidden bg-gray-50 aspect-square border border-gray-100 shadow-sm">
+      <div className="relative rounded-2xl overflow-hidden bg-gray-50 aspect-square border border-gray-100 shadow-sm flex-1 min-w-0">
         {/* Canvas View */}
         <div
           className={`absolute inset-0 z-10 bg-white ${
@@ -186,39 +220,6 @@ export default function ProductGallery({
         </div>
       </div>
 
-      {/* Thumbnail strip */}
-      <div className="hidden lg:flex gap-2 overflow-x-auto scrollbar-hide p-1">
-        {productImages.map((img, i) => (
-          <button
-            key={img.id}
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowCanvas(false);
-              setActiveIndex(i);
-            }}
-            className={`flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden transition-all ${
-              i === activeIndex
-                ? "ring-2 ring-[#ff6b6b] ring-offset-1"
-                : "ring-1 ring-gray-200 hover:ring-[#ff6b6b] opacity-70 hover:opacity-100"
-            }`}
-          >
-            {img.url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={img.url}
-                alt={img.alt}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div
-                className={`w-full h-full bg-gradient-to-br ${img.bg} flex items-center justify-center`}
-              >
-                <span className="text-2xl">{img.emoji}</span>
-              </div>
-            )}
-          </button>
-        ))}
-      </div>
     </div>
   );
 }
