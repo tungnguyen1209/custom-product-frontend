@@ -27,7 +27,7 @@ interface Props {
 function formatPrice(price: number | string): string {
   const num = typeof price === "string" ? Number(price) : price;
   if (Number.isNaN(num)) return "";
-  return `AU$${num.toFixed(2)}`;
+  return `$${num.toFixed(2)}`;
 }
 
 export default function ProductPage({ params }: Props) {
@@ -156,9 +156,9 @@ export default function ProductPage({ params }: Props) {
 
               <div className="flex items-baseline gap-3">
                 <span className="text-3xl font-bold text-gray-900">
-                  {product ? formatPrice(product.basePrice) : "AU$37.00"}
+                  {product ? formatPrice(product.basePrice) : "$37.00"}
                 </span>
-                <span className="text-sm text-gray-400 line-through">AU$52.00</span>
+                <span className="text-sm text-gray-400 line-through">$52.00</span>
                 <span className="text-sm font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full">
                   29% OFF
                 </span>

@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { Heart, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import StarRating from "./StarRating";
 import Image from "next/image";
+import { decodeHtmlEntities } from "@/lib/api";
 
 interface RelatedProduct {
   id: number;
@@ -72,7 +73,11 @@ export default function RelatedProducts({ productId }: { productId: string | nul
         );
         const data = await res.json();
         if (!cancelled && data?.success) {
-          setProducts(data.items || []);
+          const items: RelatedProduct[] = (data.items || []).map((p: RelatedProduct) => ({
+            ...p,
+            name: p.name ? decodeHtmlEntities(p.name) : p.name,
+          }));
+          setProducts(items);
         }
       } catch (err) {
         console.error("Failed to fetch related products", err);

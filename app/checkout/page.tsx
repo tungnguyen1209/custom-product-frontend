@@ -82,24 +82,24 @@ function OrderSummary({ items, shippingCost, finalTotal }: { items: any[]; shipp
                   {Object.entries(item.customization).map(([k, v]) => `${k}: ${v}`).join(', ')}
                 </p>
               </div>
-              <span className="text-sm font-bold text-gray-900 flex-shrink-0">AU${(item.unitPrice * item.quantity).toFixed(2)}</span>
+              <span className="text-sm font-bold text-gray-900 flex-shrink-0">${(item.unitPrice * item.quantity).toFixed(2)}</span>
             </div>
           ))}
 
           <div className="border-t border-gray-100 pt-3 mt-1 flex flex-col gap-2 text-sm">
             <div className="flex justify-between text-gray-600">
               <span>Subtotal</span>
-              <span>AU${subtotal.toFixed(2)}</span>
+              <span>${subtotal.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-gray-600">
               <span>Shipping</span>
               <span className={shippingCost === 0 ? "text-[#ff6b6b] font-medium" : ""}>
-                {shippingCost === 0 ? "FREE" : `AU$${shippingCost.toFixed(2)}`}
+                {shippingCost === 0 ? "FREE" : `$${shippingCost.toFixed(2)}`}
               </span>
             </div>
             <div className="flex justify-between font-bold text-gray-900 text-base border-t border-gray-100 pt-2 mt-1">
               <span>Total</span>
-              <span>AU${finalTotal.toFixed(2)}</span>
+              <span>${finalTotal.toFixed(2)}</span>
             </div>
             <p className="text-xs text-gray-400 -mt-1">Including GST</p>
           </div>
@@ -281,7 +281,7 @@ export default function CheckoutPage() {
                 {summaryOpen ? "Hide" : "Show"} order summary
                 {summaryOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
               </div>
-              <span className="text-sm font-bold text-gray-900">AU${finalTotal.toFixed(2)}</span>
+              <span className="text-sm font-bold text-gray-900">${finalTotal.toFixed(2)}</span>
             </button>
 
             {summaryOpen && (
@@ -355,8 +355,8 @@ export default function CheckoutPage() {
                   </h2>
                   <div className="flex flex-col gap-2">
                     {[
-                      { value: "standard", icon: <Truck className="w-4 h-4 text-[#ff6b6b]" />, label: "Standard", eta: "5–8 business days", price: subtotal >= 60 ? "FREE" : "AU$9.95" },
-                      { value: "express", icon: <Zap className="w-4 h-4 text-orange-500" />, label: "Express", eta: "2–3 business days", price: "AU$14.95" },
+                      { value: "standard", icon: <Truck className="w-4 h-4 text-[#ff6b6b]" />, label: "Standard", eta: "5–8 business days", price: subtotal >= 60 ? "FREE" : "$9.95" },
+                      { value: "express", icon: <Zap className="w-4 h-4 text-orange-500" />, label: "Express", eta: "2–3 business days", price: "$14.95" },
                     ].map(opt => {
                       const active = form.shippingMethod === opt.value;
                       return (
@@ -437,7 +437,7 @@ export default function CheckoutPage() {
                     disabled={processing || items.length === 0}
                     className="w-full py-4 rounded-2xl bg-[#ff6b6b] hover:bg-[#ee5253] disabled:opacity-70 text-white font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#ff6b6b]/25"
                   >
-                    {processing ? "Processing..." : `Place Order · AU$${finalTotal.toFixed(2)}`}
+                    {processing ? "Processing..." : `Place Order · $${finalTotal.toFixed(2)}`}
                   </button>
                 </div>
               </div>

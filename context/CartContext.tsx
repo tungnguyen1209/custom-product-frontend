@@ -4,10 +4,21 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { apiRequest } from '@/lib/api';
 import { v4 as uuidv4 } from 'uuid';
 
+export interface CanvasSnapshot {
+  width?: number;
+  height?: number;
+  baseFile?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  elements?: any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any;
+}
+
 export interface CartItem {
   productId: number;
   productName: string;
   customization: Record<string, any>;
+  canvas?: CanvasSnapshot;
   quantity: number;
   unitPrice: number;
 }
@@ -27,6 +38,9 @@ interface CartContextType {
   removeItem: (productId: number) => Promise<void>;
   clearCart: () => Promise<void>;
   refreshCart: () => Promise<void>;
+  isMiniCartOpen: boolean;
+  openMiniCart: () => void;
+  closeMiniCart: () => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -36,6 +50,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [isMiniCartOpen, setIsMiniCartOpen] = useState(false);
+  const openMiniCart = useCallback(() => setIsMiniCartOpen(true), []);
+  const closeMiniCart = useCallback(() => setIsMiniCartOpen(false), []);
 
   useEffect(() => {
     let sid = localStorage.getItem('cart_session_id');
@@ -121,7 +138,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       updateItem,
       removeItem,
       clearCart,
-      refreshCart
+      refreshCart,
+      isMiniCartOpen,
+      openMiniCart,
+      closeMiniCart,
     }}>
       {children}
     </CartContext.Provider>

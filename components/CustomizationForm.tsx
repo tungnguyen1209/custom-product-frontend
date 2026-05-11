@@ -106,6 +106,7 @@ interface IOption {
   isShow: boolean;
   hideVisually?: boolean;
   isCallieHide?: boolean;
+  required?: boolean;
   currentValue: number | string;
   swatchValues?: SwatchVal[];
   dropdownValues?: DropdownVal[];
@@ -119,28 +120,51 @@ interface IOption {
   };
 }
 
+function isOptionFilled(option: IOption): boolean {
+  const v = option.currentValue;
+  if (v === undefined || v === null) return false;
+  if (typeof v === "string") return v.trim().length > 0;
+  if (typeof v === "number") return !Number.isNaN(v);
+  return Boolean(v);
+}
+
+function getMissingRequired(options: IOption[]): IOption[] {
+  return options.filter(
+    (o) => o.required && o.isShow && !o.hideVisually && !o.isCallieHide && !isOptionFilled(o),
+  );
+}
+
 /* ─── Swatch option ────────────────────────────────────────────────────── */
 
 function SwatchOption({
   option,
   onSelect,
   loadingValueId,
+  showError,
 }: {
   option: IOption;
   onSelect: (val: SwatchVal) => void;
   loadingValueId?: number | string | null;
+  showError?: boolean;
 }) {
   const values = option.swatchValues ?? [];
   const hasImages = values.some((v) => v.thumbImage);
   const selected = values.find((v) => v.id === option.currentValue);
+  const errored = showError && option.required && !isOptionFilled(option);
 
   return (
     <div className="flex flex-col gap-2.5">
       {/* Label row */}
       <div className="flex items-center gap-2">
-        <span className="text-sm font-bold text-gray-800">{option.label}:</span>
+        <span className="text-sm font-bold text-gray-800">
+          {option.label}
+          {option.required && <span className="text-red-500 ml-0.5">*</span>}:
+        </span>
         {selected && (
           <span className="text-sm text-gray-500 font-medium">{selected.valueName}</span>
+        )}
+        {errored && (
+          <span className="text-xs text-red-500 font-semibold">Please select an option</span>
         )}
       </div>
 
@@ -225,17 +249,21 @@ function DropdownOption({
   option,
   onSelect,
   isLoading,
+  showError,
 }: {
   option: IOption;
   onSelect: (val: DropdownVal) => void;
   isLoading?: boolean;
+  showError?: boolean;
 }) {
   const values = option.dropdownValues ?? [];
+  const errored = showError && option.required && !isOptionFilled(option);
 
   return (
     <div className="flex flex-col gap-2">
       <label className="text-sm font-bold text-gray-800">
         {option.label}
+        {option.required && <span className="text-red-500 ml-0.5">*</span>}
       </label>
       <div className="relative">
         <select
@@ -245,7 +273,11 @@ function DropdownOption({
             const chosen = values.find((v) => typeof v.id !== 'undefined' ? String(v.id) == e.target.value : v.valueName == e.target.value);
             if (chosen) onSelect(chosen);
           }}
-          className="w-full px-4 py-3 pr-10 rounded-xl border border-gray-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ff6b6b]/20 focus:border-[#ff6b6b] bg-white appearance-none cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed transition-all"
+          className={`w-full px-4 py-3 pr-10 rounded-xl border text-sm font-medium focus:outline-none focus:ring-2 bg-white appearance-none cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed transition-all ${
+            errored
+              ? "border-red-400 focus:ring-red-200 focus:border-red-500"
+              : "border-gray-200 focus:ring-[#ff6b6b]/20 focus:border-[#ff6b6b]"
+          }`}
         >
           <option value="">— Select {option.label} —</option>
           {values.map((val) => (
@@ -260,6 +292,9 @@ function DropdownOption({
           <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
         )}
       </div>
+      {errored && (
+        <p className="text-xs text-red-500 font-semibold">Please select an option</p>
+      )}
     </div>
   );
 }
@@ -269,18 +304,22 @@ function DropdownOption({
 function TextInputOption({
   option,
   onChange,
+  showError,
 }: {
   option: IOption;
   onChange: (val: string) => void;
+  showError?: boolean;
 }) {
   const maxLen = option.config?.maxLength ?? 100;
   const placeholder = option.config?.placeholder ?? "Enter text...";
   const value = String(option.currentValue ?? "");
+  const errored = showError && option.required && !isOptionFilled(option);
 
   return (
     <div className="flex flex-col gap-2">
       <label className="text-sm font-bold text-gray-800">
         {option.label}
+        {option.required && <span className="text-red-500 ml-0.5">*</span>}
       </label>
       <div className="relative">
         <textarea
@@ -291,7 +330,11 @@ function TextInputOption({
           placeholder={placeholder}
           maxLength={maxLen}
           rows={maxLen > 60 ? 4 : 1}
-          className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ff6b6b]/20 focus:border-[#ff6b6b] bg-white resize-none placeholder:text-gray-400 transition-all"
+          className={`w-full px-4 py-3 rounded-xl border text-sm font-medium focus:outline-none focus:ring-2 bg-white resize-none placeholder:text-gray-400 transition-all ${
+            errored
+              ? "border-red-400 focus:ring-red-200 focus:border-red-500"
+              : "border-gray-200 focus:ring-[#ff6b6b]/20 focus:border-[#ff6b6b]"
+          }`}
           style={{ minHeight: maxLen > 60 ? undefined : "48px" }}
         />
         <span
@@ -302,6 +345,9 @@ function TextInputOption({
           {value.length}/{maxLen}
         </span>
       </div>
+      {errored && (
+        <p className="text-xs text-red-500 font-semibold">Please enter a value</p>
+      )}
     </div>
   );
 }
@@ -316,13 +362,16 @@ interface UploadedPreview {
 function ImageUploadOption({
   option,
   onUpload,
+  showError,
 }: {
   option: IOption;
   onUpload: (dataUrl: string) => void;
+  showError?: boolean;
 }) {
   const [preview, setPreview] = useState<UploadedPreview | null>(null);
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const errored = showError && option.required && !isOptionFilled(option) && !preview;
 
   const processFile = useCallback(
     (file: File) => {
@@ -353,6 +402,7 @@ function ImageUploadOption({
     <div className="flex flex-col gap-2">
       <label className="text-sm font-bold text-gray-800">
         {option.label}
+        {option.required && <span className="text-red-500 ml-0.5">*</span>}
       </label>
       {helpText && <p className="text-[11px] text-gray-400 -mt-1">{helpText}</p>}
 
@@ -392,7 +442,9 @@ function ImageUploadOption({
           className={`flex flex-col items-center justify-center gap-2.5 py-8 px-5 rounded-2xl border-2 border-dashed cursor-pointer transition-all ${
             dragging
               ? "border-[#ff6b6b] bg-[#fff0f0]"
-              : "border-gray-200 hover:border-[#ff6b6b] hover:bg-gray-50/50"
+              : errored
+                ? "border-red-400 bg-red-50/40 hover:border-red-500"
+                : "border-gray-200 hover:border-[#ff6b6b] hover:bg-gray-50/50"
           }`}
         >
           <div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center">
@@ -421,6 +473,9 @@ function ImageUploadOption({
           />
         </div>
       )}
+      {errored && (
+        <p className="text-xs text-red-500 font-semibold">Please upload a photo</p>
+      )}
     </div>
   );
 }
@@ -431,13 +486,16 @@ function CartStrip({
   onPreview,
   onAdd,
   added,
+  missingRequired,
 }: {
   onPreview: () => void;
   onAdd: () => void;
   added: boolean;
+  missingRequired: IOption[];
 }) {
   const [qty, setQty] = useState(1);
   const [wishlisted, setWishlisted] = useState(false);
+  const blocked = missingRequired.length > 0;
 
   return (
     <div className="flex flex-col gap-6 pt-2">
@@ -473,6 +531,16 @@ function CartStrip({
 
       {/* CTA buttons */}
       <div className="flex flex-col gap-4">
+        {blocked && (
+          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
+            <p className="font-bold mb-1">Please complete the required options:</p>
+            <ul className="list-disc list-inside space-y-0.5">
+              {missingRequired.map((o) => (
+                <li key={o.id} className="font-medium">{o.label}</li>
+              ))}
+            </ul>
+          </div>
+        )}
         <button
           onClick={onPreview}
           className="w-full py-4 rounded-2xl font-bold text-sm bg-white hover:bg-gray-50 text-gray-900 transition-all flex items-center justify-center gap-2.5 border-2 border-gray-100 shadow-sm"
@@ -609,7 +677,7 @@ export default function CustomizationForm({
   const customization =
     customizationProp !== undefined ? customizationProp : internalCustomization;
   const customizationError = customizationErrorProp || internalCustomizationError;
-  const { addItem } = useCart();
+  const { addItem, openMiniCart } = useCart();
   const [options, setOptions] = useState<IOption[]>([]);
   const [ready, setReady] = useState(false);
   const [fetchError, setFetchError] = useState(false);
@@ -622,8 +690,34 @@ export default function CustomizationForm({
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewImageUrl, setPreviewImageUrl] = useState("");
   const [added, setAdded] = useState(false);
+  const [showRequiredErrors, setShowRequiredErrors] = useState(false);
+
+  const missingRequired = getMissingRequired(options);
+
+  useEffect(() => {
+    if (showRequiredErrors && missingRequired.length === 0) {
+      setShowRequiredErrors(false);
+    }
+  }, [showRequiredErrors, missingRequired.length]);
+
+  const focusMissing = useCallback((missing: IOption[]) => {
+    if (missing.length === 0 || typeof document === "undefined") return;
+    const el = document.querySelector<HTMLElement>(
+      `[data-option-id="${missing[0].id}"]`,
+    );
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, []);
 
   const handleAdd = useCallback(async () => {
+    const missing = getMissingRequired(options);
+    if (missing.length > 0) {
+      setShowRequiredErrors(true);
+      focusMissing(missing);
+      return;
+    }
+
     const selected: Record<string, any> = {};
     options.forEach(opt => {
       if (opt.currentValue) {
@@ -631,23 +725,45 @@ export default function CustomizationForm({
       }
     });
 
+    const rawTemplate = serviceRef.current?.getTemplate?.();
+    const canvas = rawTemplate
+      ? {
+          width: rawTemplate.width,
+          height: rawTemplate.height,
+          baseFile: rawTemplate.baseFile,
+          elements: Array.isArray(rawTemplate.elements)
+            ? rawTemplate.elements
+            : rawTemplate.elements
+              ? Object.values(rawTemplate.elements)
+              : [],
+        }
+      : undefined;
+
     try {
       await addItem({
         productId: parseInt(productId),
         productName,
-        unitPrice: basePrice > 0 ? Math.round(basePrice * 100) : 450000,
+        unitPrice: basePrice,
         customization: selected,
+        canvas,
       });
       setAdded(true);
+      openMiniCart();
       setTimeout(() => setAdded(false), 2500);
     } catch (err) {
       console.error('Failed to add to cart:', err);
     }
-  }, [addItem, productId, options, productName, basePrice]);
+  }, [addItem, openMiniCart, productId, options, productName, basePrice, focusMissing]);
 
   const handlePreviewRequest = useCallback(() => {
+    const missing = getMissingRequired(options);
+    if (missing.length > 0) {
+      setShowRequiredErrors(true);
+      focusMissing(missing);
+      return;
+    }
     window.dispatchEvent(new CustomEvent("wm-request-preview"));
-  }, []);
+  }, [options, focusMissing]);
 
   useEffect(() => {
     const onShowPreview = (e: Event) => {
@@ -820,7 +936,12 @@ export default function CustomizationForm({
           </div>
         )}
 
-        <CartStrip onPreview={handlePreviewRequest} onAdd={handleAdd} added={added} />
+        <CartStrip
+          onPreview={handlePreviewRequest}
+          onAdd={handleAdd}
+          added={added}
+          missingRequired={showRequiredErrors ? missingRequired : []}
+        />
       </div>
     );
   }
@@ -838,6 +959,8 @@ export default function CustomizationForm({
       {/* Dynamic options */}
       <div className="flex flex-col gap-6">
         {visibleOptions.map((option) => {
+          let inner: React.ReactNode = null;
+
           if (option.type === "swatch") {
             const prefix = `${option.id}:`;
             const rawLoading = processingKey?.startsWith(prefix)
@@ -846,53 +969,57 @@ export default function CustomizationForm({
             const loadingValueId = rawLoading != null && !isNaN(Number(rawLoading))
               ? Number(rawLoading)
               : rawLoading;
-            return (
+            inner = (
               <SwatchOption
-                key={option.id}
                 option={option}
                 onSelect={(val) => handleSelectValue(option, val)}
                 loadingValueId={loadingValueId}
+                showError={showRequiredErrors}
               />
             );
-          }
-
-          if (option.type === "dropdown") {
-            return (
+          } else if (option.type === "dropdown") {
+            inner = (
               <DropdownOption
-                key={option.id}
                 option={option}
                 onSelect={(val) => handleSelectValue(option, val)}
                 isLoading={processingKey?.startsWith(`${option.id}:`) ?? false}
+                showError={showRequiredErrors}
               />
             );
-          }
-
-          if (option.type === "text-input") {
-            return (
+          } else if (option.type === "text-input") {
+            inner = (
               <TextInputOption
-                key={option.id}
                 option={option}
                 onChange={(val) => handleTextChange(option, val)}
+                showError={showRequiredErrors}
               />
             );
-          }
-
-          if (option.type === "image-upload") {
-            return (
+          } else if (option.type === "image-upload") {
+            inner = (
               <ImageUploadOption
-                key={option.id}
                 option={option}
                 onUpload={(dataUrl) => handleImageUpload(option, dataUrl)}
+                showError={showRequiredErrors}
               />
             );
           }
 
-          return null;
+          if (!inner) return null;
+          return (
+            <div key={option.id} data-option-id={option.id}>
+              {inner}
+            </div>
+          );
         })}
       </div>
 
       {/* Quantity + Add to Cart */}
-      <CartStrip onPreview={handlePreviewRequest} onAdd={handleAdd} added={added} />
+      <CartStrip
+        onPreview={handlePreviewRequest}
+        onAdd={handleAdd}
+        added={added}
+        missingRequired={showRequiredErrors ? missingRequired : []}
+      />
 
       {/* Preview Modal */}
       <PreviewModal

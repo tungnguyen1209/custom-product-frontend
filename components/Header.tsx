@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { Search, ShoppingCart, Heart, Menu, X, ChevronDown, Gift } from "lucide-react";
+import { useCart } from "@/context/CartContext";
+import MiniCart from "./MiniCart";
 
 const navCategories = [
   "Family",
@@ -15,6 +17,8 @@ const navCategories = [
 export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
+  const { cart, isMiniCartOpen, openMiniCart, closeMiniCart } = useCart();
+  const itemCount = cart?.items.reduce((sum, i) => sum + i.quantity, 0) ?? 0;
 
   return (
     <header className="sticky top-0 z-50 bg-white shadow-sm">
@@ -59,12 +63,18 @@ export default function Header() {
               <Heart className="w-5 h-5" />
               <span>Wishlist</span>
             </button>
-            <button className="relative flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-[#ff6b6b] transition-colors">
+            <button
+              onClick={openMiniCart}
+              aria-label={`Open cart, ${itemCount} items`}
+              className="relative flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-[#ff6b6b] transition-colors cursor-pointer"
+            >
               <div className="relative">
                 <ShoppingCart className="w-5 h-5" />
-                <span className="absolute -top-1.5 -right-1.5 w-4.5 h-4.5 bg-[#ff6b6b] rounded-full text-white text-[10px] flex items-center justify-center font-bold border-2 border-white">
-                  0
-                </span>
+                {itemCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-[#ff6b6b] rounded-full text-white text-[10px] flex items-center justify-center font-bold border-2 border-white">
+                    {itemCount > 99 ? "99+" : itemCount}
+                  </span>
+                )}
               </div>
               <span className="hidden sm:block">Cart</span>
             </button>
@@ -122,6 +132,8 @@ export default function Header() {
           </div>
         </div>
       )}
+
+      <MiniCart open={isMiniCartOpen} onClose={closeMiniCart} />
     </header>
   );
 }

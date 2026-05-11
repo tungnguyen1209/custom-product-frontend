@@ -3,6 +3,28 @@ export const API_BASE_URL =
 
 export const CUSTOMIZATION_BASE_URL = `${API_BASE_URL}/product/customization`;
 
+const NAMED_ENTITIES: Record<string, string> = {
+  amp: '&',
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  apos: "'",
+  nbsp: ' ',
+};
+
+export function decodeHtmlEntities(input: string): string {
+  return input.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (match, entity: string) => {
+    if (entity[0] === '#') {
+      const code = entity[1] === 'x' || entity[1] === 'X'
+        ? parseInt(entity.slice(2), 16)
+        : parseInt(entity.slice(1), 10);
+      return Number.isFinite(code) ? String.fromCodePoint(code) : match;
+    }
+    const named = NAMED_ENTITIES[entity.toLowerCase()];
+    return named ?? match;
+  });
+}
+
 export async function apiRequest(
   endpoint: string,
   options: RequestInit = {},
@@ -72,8 +94,13 @@ export interface ProductCustomizationData {
   template?: CustomizationTemplate;
 }
 
-export function getProduct(id: string | number): Promise<ProductBasicInfo> {
-  return apiRequest(`/products/${id}`);
+export async function getProduct(id: string | number): Promise<ProductBasicInfo> {
+  const product: ProductBasicInfo = await apiRequest(`/products/${id}`);
+  return {
+    ...product,
+    name: product.name ? decodeHtmlEntities(product.name) : product.name,
+    description: product.description ? decodeHtmlEntities(product.description) : product.description,
+  };
 }
 
 /**

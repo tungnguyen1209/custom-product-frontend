@@ -90,7 +90,7 @@ function CartItem({
             </button>
           </div>
           <div className="text-right">
-            <div className="text-sm font-bold text-gray-900">AU${(item.unitPrice * item.quantity).toFixed(2)}</div>
+            <div className="text-sm font-bold text-gray-900">${(item.unitPrice * item.quantity).toFixed(2)}</div>
           </div>
         </div>
       </div>
@@ -191,7 +191,7 @@ export default function CartPage() {
                 <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3">
                   <div className="flex items-center justify-between text-sm mb-2">
                     <span className="text-amber-800 font-medium">
-                      Add <strong>AU${(FREE_SHIP_THRESHOLD - (subtotal - discount)).toFixed(2)}</strong> more for FREE shipping
+                      Add <strong>${(FREE_SHIP_THRESHOLD - (subtotal - discount)).toFixed(2)}</strong> more for FREE shipping
                     </span>
                     <Truck className="w-4 h-4 text-amber-500" />
                   </div>
@@ -267,18 +267,18 @@ export default function CartPage() {
 
                   {/* Totals */}
                   <div className="flex flex-col gap-2.5 text-sm border-t border-gray-100 pt-4 mt-2">
-                    <Row label={`Subtotal (${totalQty} items)`} value={`AU$${subtotal.toFixed(2)}`} />
+                    <Row label={`Subtotal (${totalQty} items)`} value={`$${subtotal.toFixed(2)}`} />
                     {discount > 0 && (
-                      <Row label="Promo (10%)" value={`-AU$${discount.toFixed(2)}`} highlight />
+                      <Row label="Promo (10%)" value={`-$${discount.toFixed(2)}`} highlight />
                     )}
                     <Row
                       label="Shipping"
-                      value={shipping === 0 ? "FREE" : `AU$${shipping.toFixed(2)}`}
+                      value={shipping === 0 ? "FREE" : `$${shipping.toFixed(2)}`}
                       highlight={shipping === 0}
                     />
                     <div className="flex justify-between font-bold text-gray-900 text-base border-t border-gray-100 pt-3 mt-1">
                       <span>Total</span>
-                      <span>AU${total.toFixed(2)}</span>
+                      <span>${total.toFixed(2)}</span>
                     </div>
                     <p className="text-xs text-gray-400 -mt-1">Including GST</p>
                   </div>
