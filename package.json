@@ -9,7 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@megaads/wm": "^3.3.18",
+    "@megaads/wm": "^3.3.19",
     "@paypal/react-paypal-js": "^9.2.0",
     "@stripe/react-stripe-js": "^6.3.0",
     "@stripe/stripe-js": "^9.4.0",
