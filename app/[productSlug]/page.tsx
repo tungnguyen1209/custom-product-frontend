@@ -77,6 +77,10 @@ export default function ProductPage({ params }: Props) {
 
   if (productId === null) return null;
   if (!productId) notFound();
+  // Backend filters isActive: true in findByExternalId, so an inactive (or
+  // missing) product surfaces as a 404 here. Redirect to the not-found page
+  // instead of rendering fallback placeholders.
+  if (productError) notFound();
 
   const productName = product?.name ?? `Product ${productId}`;
   const galleryImages = product?.gallery ?? [];

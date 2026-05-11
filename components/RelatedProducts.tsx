@@ -4,16 +4,17 @@ import { useEffect, useState, useRef } from "react";
 import { Heart, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import StarRating from "./StarRating";
 import Image from "next/image";
-import { decodeHtmlEntities } from "@/lib/api";
+import { API_BASE_URL, decodeHtmlEntities } from "@/lib/api";
 
 interface RelatedProduct {
   id: number;
+  externalId: string;
   name: string;
+  slug: string | null;
+  imageUrl: string | null;
+  price: number;
+  displayPrice: string;
   url: string;
-  image_url: string;
-  display_price: string;
-  display_high_price: string;
-  sale_percent: string;
 }
 
 export default function RelatedProducts({ productId }: { productId: string | null }) {
@@ -64,16 +65,13 @@ export default function RelatedProducts({ productId }: { productId: string | nul
     async function fetchRelated() {
       try {
         const res = await fetch(
-          `/api/printerval/module/customization/tool/related-products?product_id=${productId}&limit=15&mode=occasion`,
-          {
-            headers: {
-              accept: "application/json, text/plain, */*",
-            },
-          }
+          `${API_BASE_URL}/products/${encodeURIComponent(productId!)}/related?limit=15`,
+          { headers: { accept: "application/json" } }
         );
-        const data = await res.json();
-        if (!cancelled && data?.success) {
-          const items: RelatedProduct[] = (data.items || []).map((p: RelatedProduct) => ({
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = (await res.json()) as { items?: RelatedProduct[] };
+        if (!cancelled) {
+          const items = (data.items ?? []).map((p) => ({
             ...p,
             name: p.name ? decodeHtmlEntities(p.name) : p.name,
           }));
@@ -142,24 +140,25 @@ export default function RelatedProducts({ productId }: { productId: string | nul
             {products.map((product) => (
               <a
                 key={product.id}
-                href={`s-p${product.id}`}
+                href={'s-p' + product.id}
                 rel="noopener noreferrer"
                 className="group bg-white w-44 sm:w-56 rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 flex flex-col snap-start shrink-0"
               >
                 <div className="relative aspect-square bg-gray-100 overflow-hidden flex-shrink-0">
-                  <Image
-                    src={product.image_url}
-                    alt={product.name}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-500"
-                    unoptimized
-                  />
-                  {product.sale_percent && (
-                    <span className="absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-500 text-white">
-                      {product.sale_percent}
-                    </span>
+                  {product.imageUrl ? (
+                    <Image
+                      src={product.imageUrl}
+                      alt={product.name}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-500"
+                      unoptimized
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-purple-100 to-pink-100 text-3xl">
+                      🎁
+                    </div>
                   )}
-                  <button 
+                  <button
                     onClick={(e) => e.preventDefault()}
                     className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
                   >
@@ -170,19 +169,14 @@ export default function RelatedProducts({ productId }: { productId: string | nul
                   <p className="text-sm font-medium text-gray-800 leading-snug line-clamp-2 mb-1.5 flex-1">
                     {product.name}
                   </p>
-                  
-                  {/* Mock rating for aesthetic purposes since API doesn't provide it */}
-                  <StarRating rating={5.0} count={Math.floor(Math.random() * 50) + 10} />
-                  
+
+                  {/* Static rating placeholder — replace once we track reviews. */}
+                  <StarRating rating={5.0} count={42} />
+
                   <div className="mt-2 flex items-baseline gap-2">
                     <span className="font-bold text-gray-900 text-sm">
-                      {product.display_price}
+                      {product.displayPrice}
                     </span>
-                    {product.display_high_price && (
-                      <span className="text-xs text-gray-400 line-through">
-                        {product.display_high_price}
-                      </span>
-                    )}
                   </div>
                 </div>
               </a>
