@@ -909,6 +909,7 @@ export default function CustomizationForm({
           baseUrl: BASE_URL,
           breadcrumbs: [],
           isAllowReplaceBackground: false,
+          isShowExcessiveOption: true
         });
 
         serviceRef.current = svc;
