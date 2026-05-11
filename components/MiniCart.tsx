@@ -109,8 +109,17 @@ export default function MiniCart({ open, onClose }: MiniCartProps) {
             <ul className="divide-y divide-gray-100">
               {items.map((item) => (
                 <li key={item.productId} className="flex gap-3 px-5 py-4">
-                  <div className="flex-shrink-0 w-16 h-16 rounded-xl bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center">
-                    <span className="text-2xl">🎁</span>
+                  <div className="flex-shrink-0 w-16 h-16 rounded-xl bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center overflow-hidden">
+                    {item.previewImageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={item.previewImageUrl}
+                        alt={item.productName}
+                        className="w-full h-full object-contain"
+                      />
+                    ) : (
+                      <span className="text-2xl">🎁</span>
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">

@@ -70,8 +70,17 @@ function OrderSummary({ items, shippingCost, finalTotal }: { items: any[]; shipp
         <div className="px-5 py-4 flex flex-col gap-3">
           {items.map((item, idx) => (
             <div key={idx} className="flex items-center gap-3">
-              <div className={`flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center relative`}>
-                <span className="text-xl">🎁</span>
+              <div className={`flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center relative overflow-hidden`}>
+                {item.previewImageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={item.previewImageUrl}
+                    alt={item.productName}
+                    className="w-full h-full object-contain"
+                  />
+                ) : (
+                  <span className="text-xl">🎁</span>
+                )}
                 <span className="absolute -top-1.5 -right-1.5 min-w-[18px] min-h-[18px] bg-gray-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-1">
                   {item.quantity}
                 </span>

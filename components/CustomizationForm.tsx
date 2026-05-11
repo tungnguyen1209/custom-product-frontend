@@ -486,11 +486,13 @@ function CartStrip({
   onPreview,
   onAdd,
   added,
+  adding,
   missingRequired,
 }: {
   onPreview: () => void;
   onAdd: () => void;
   added: boolean;
+  adding: boolean;
   missingRequired: IOption[];
 }) {
   const [qty, setQty] = useState(1);
@@ -549,7 +551,8 @@ function CartStrip({
         </button>
         <button
           onClick={onAdd}
-          className={`w-full py-4 rounded-2xl font-bold text-sm transition-all flex items-center justify-center gap-2.5 shadow-lg shadow-[#ff6b6b]/20 ${
+          disabled={adding}
+          className={`w-full py-4 rounded-2xl font-bold text-sm transition-all flex items-center justify-center gap-2.5 shadow-lg shadow-[#ff6b6b]/20 disabled:opacity-80 disabled:cursor-wait ${
             added
               ? "bg-green-500 text-white shadow-green-500/20"
               : "bg-[#ff6b6b] hover:bg-[#ee5253] text-white"
@@ -558,6 +561,10 @@ function CartStrip({
           {added ? (
             <>
               <CheckCircle className="w-5 h-5" /> Added to Cart!
+            </>
+          ) : adding ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" /> Adding...
             </>
           ) : (
             <>
@@ -598,7 +605,57 @@ function broadcastTemplate(svc: any, isUserInteraction = false) {
 
 /* ─── Main component ───────────────────────────────────────────────────── */
 
-import { CUSTOMIZATION_BASE_URL } from "@/lib/api";
+import { API_BASE_URL, CUSTOMIZATION_BASE_URL } from "@/lib/api";
+
+/**
+ * Ask the WM service for a fresh preview dataUrl by piggybacking on the
+ * existing wm-request-preview / wm-show-preview event pair.
+ */
+function requestCanvasPreview(timeoutMs = 8000): Promise<string | null> {
+  if (typeof window === "undefined") return Promise.resolve(null);
+  return new Promise((resolve) => {
+    let settled = false;
+    const onShow = (e: Event) => {
+      if (settled) return;
+      const dataUrl = (e as CustomEvent).detail?.dataUrl;
+      if (typeof dataUrl === "string" && dataUrl.startsWith("data:image/")) {
+        settled = true;
+        window.removeEventListener("wm-show-preview", onShow);
+        resolve(dataUrl);
+      }
+    };
+    window.addEventListener("wm-show-preview", onShow);
+    window.dispatchEvent(new CustomEvent("wm-request-preview"));
+    setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      window.removeEventListener("wm-show-preview", onShow);
+      resolve(null);
+    }, timeoutMs);
+  });
+}
+
+async function uploadCartPreview(dataUrl: string): Promise<string | null> {
+  try {
+    const sessionId =
+      typeof window !== "undefined"
+        ? localStorage.getItem("cart_session_id") || undefined
+        : undefined;
+    const res = await fetch(`${API_BASE_URL}/uploads/cart-preview`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(sessionId ? { "x-session-id": sessionId } : {}),
+      },
+      body: JSON.stringify({ dataUrl }),
+    });
+    if (!res.ok) return null;
+    const json = (await res.json()) as { url?: string };
+    return json.url ?? null;
+  } catch {
+    return null;
+  }
+}
 
 const BASE_URL = CUSTOMIZATION_BASE_URL;
 
@@ -690,7 +747,11 @@ export default function CustomizationForm({
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewImageUrl, setPreviewImageUrl] = useState("");
   const [added, setAdded] = useState(false);
+  const [adding, setAdding] = useState(false);
   const [showRequiredErrors, setShowRequiredErrors] = useState(false);
+  // True while we're piggybacking on wm-show-preview just to capture an image
+  // for cart upload — suppresses the global "open preview modal" listener.
+  const silentPreviewRef = useRef(false);
 
   const missingRequired = getMissingRequired(options);
 
@@ -711,12 +772,15 @@ export default function CustomizationForm({
   }, []);
 
   const handleAdd = useCallback(async () => {
+    if (adding) return;
     const missing = getMissingRequired(options);
     if (missing.length > 0) {
       setShowRequiredErrors(true);
       focusMissing(missing);
       return;
     }
+
+    setAdding(true);
 
     const selected: Record<string, any> = {};
     options.forEach(opt => {
@@ -726,18 +790,42 @@ export default function CustomizationForm({
     });
 
     const rawTemplate = serviceRef.current?.getTemplate?.();
+    const rawElements: any[] = !rawTemplate
+      ? []
+      : Array.isArray(rawTemplate.elements)
+        ? rawTemplate.elements
+        : rawTemplate.elements
+          ? Object.values(rawTemplate.elements)
+          : [];
+
+    // Keep only visible elements (isShow) OR fully opaque ones — drops hidden
+    // helper layers (guides, bounding boxes) that the editor uses internally
+    // but don't belong in the order snapshot.
+    const visibleElements = rawElements.filter(
+      (el) => el?.isShow === true || el?.opacity === 1,
+    );
+
     const canvas = rawTemplate
       ? {
           width: rawTemplate.width,
           height: rawTemplate.height,
           baseFile: rawTemplate.baseFile,
-          elements: Array.isArray(rawTemplate.elements)
-            ? rawTemplate.elements
-            : rawTemplate.elements
-              ? Object.values(rawTemplate.elements)
-              : [],
+          elements: visibleElements,
         }
       : undefined;
+
+    let previewImageUrl: string | null = null;
+    silentPreviewRef.current = true;
+    try {
+      const dataUrl = await requestCanvasPreview();
+      if (dataUrl) {
+        previewImageUrl = await uploadCartPreview(dataUrl);
+      }
+    } catch (err) {
+      console.warn('Preview capture/upload failed; continuing without preview', err);
+    } finally {
+      silentPreviewRef.current = false;
+    }
 
     try {
       await addItem({
@@ -746,14 +834,17 @@ export default function CustomizationForm({
         unitPrice: basePrice,
         customization: selected,
         canvas,
+        previewImageUrl: previewImageUrl ?? undefined,
       });
       setAdded(true);
       openMiniCart();
       setTimeout(() => setAdded(false), 2500);
     } catch (err) {
       console.error('Failed to add to cart:', err);
+    } finally {
+      setAdding(false);
     }
-  }, [addItem, openMiniCart, productId, options, productName, basePrice, focusMissing]);
+  }, [adding, addItem, openMiniCart, productId, options, productName, basePrice, focusMissing]);
 
   const handlePreviewRequest = useCallback(() => {
     const missing = getMissingRequired(options);
@@ -767,6 +858,9 @@ export default function CustomizationForm({
 
   useEffect(() => {
     const onShowPreview = (e: Event) => {
+      // When handleAdd is silently capturing a preview for cart upload,
+      // suppress the modal so it doesn't pop up unexpectedly.
+      if (silentPreviewRef.current) return;
       const dataUrl = (e as CustomEvent).detail?.dataUrl;
       if (dataUrl) {
         setPreviewImageUrl(dataUrl);
@@ -940,6 +1034,7 @@ export default function CustomizationForm({
           onPreview={handlePreviewRequest}
           onAdd={handleAdd}
           added={added}
+          adding={adding}
           missingRequired={showRequiredErrors ? missingRequired : []}
         />
       </div>
@@ -1018,6 +1113,7 @@ export default function CustomizationForm({
         onPreview={handlePreviewRequest}
         onAdd={handleAdd}
         added={added}
+        adding={adding}
         missingRequired={showRequiredErrors ? missingRequired : []}
       />
 

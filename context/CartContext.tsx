@@ -19,6 +19,7 @@ export interface CartItem {
   productName: string;
   customization: Record<string, any>;
   canvas?: CanvasSnapshot;
+  previewImageUrl?: string | null;
   quantity: number;
   unitPrice: number;
 }
