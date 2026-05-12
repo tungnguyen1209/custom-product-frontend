@@ -762,16 +762,16 @@ export default function CustomizationForm({
   }, [showRequiredErrors, missingRequired.length]);
 
   /* ── Variant price + URL sync ─────────────────────────────────────── */
-  // Build a lookup from combination key "option1|option2|option3" → variant.
+  // Build a lookup from publicTitle → variant.
   // Variant entries come from product_variants table (filled by the variant
-  // crawler) with their option1/2/3 columns matching Shopify's conf_variants.
+  // crawler) with their publicTitle matching Shopify's joined options.
   const variantsByCombo = useMemo(() => {
     const map = new Map<
       string,
       { variantId: string; price: number | null; comparePrice: number | null }
     >();
     for (const v of customization?.variants ?? []) {
-      const key = [v.option1 ?? "", v.option2 ?? "", v.option3 ?? ""].join("|");
+      const key = v.publicTitle ?? "";
       map.set(key, {
         variantId: v.variantId,
         price: v.price,
@@ -843,13 +843,8 @@ export default function CustomizationForm({
       variationOptionIds.length > 0 &&
       selectedNames.some((n) => n.length > 0)
     ) {
-      const padded = [
-        selectedNames[0] ?? "",
-        selectedNames[1] ?? "",
-        selectedNames[2] ?? "",
-      ];
-      const key = padded.join("|");
-      const hit = variantsByCombo.get(key);
+      const comboKey = selectedNames.filter(n => n.length > 0).join(" / ");
+      const hit = variantsByCombo.get(comboKey);
       if (hit) {
         matchedId = hit.variantId;
         matchedEntry = { price: hit.price, comparePrice: hit.comparePrice };
@@ -990,8 +985,8 @@ export default function CustomizationForm({
           opt.swatchValues?.find((s) => s.id === v);
         return match?.valueName ?? "";
       });
-      const padded = [names[0] ?? "", names[1] ?? "", names[2] ?? ""];
-      const hit = variantsByCombo.get(padded.join("|"));
+      const comboKey = names.filter(n => n.length > 0).join(" / ");
+      const hit = variantsByCombo.get(comboKey);
       if (hit?.price != null) activeUnitPrice = hit.price;
     }
     if (activeUnitPrice === basePrice && variantById.size > 0) {
