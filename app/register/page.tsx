@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent, useEffect } from "react";
+import { Suspense, useState, FormEvent, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import Header from "@/components/Header";
@@ -8,6 +8,14 @@ import Footer from "@/components/Footer";
 import { useAuth } from "@/context/AuthContext";
 
 export default function RegisterPage() {
+  return (
+    <Suspense fallback={null}>
+      <RegisterInner />
+    </Suspense>
+  );
+}
+
+function RegisterInner() {
   const router = useRouter();
   const params = useSearchParams();
   const { register, loginWithGoogle, loginWithFacebook, isAuthenticated } =

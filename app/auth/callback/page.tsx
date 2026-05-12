@@ -1,11 +1,27 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 export default function OAuthCallbackPage() {
+  return (
+    <Suspense fallback={<CallbackFallback />}>
+      <OAuthCallbackInner />
+    </Suspense>
+  );
+}
+
+function CallbackFallback() {
+  return (
+    <main className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <Loader2 className="w-6 h-6 animate-spin text-[#ff6b6b]" />
+    </main>
+  );
+}
+
+function OAuthCallbackInner() {
   const router = useRouter();
   const params = useSearchParams();
   const { setTokenFromOAuth } = useAuth();
