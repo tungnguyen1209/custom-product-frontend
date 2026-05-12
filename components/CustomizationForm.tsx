@@ -821,9 +821,13 @@ export default function CustomizationForm({
       let name = "";
       if (currentVal != null) {
         const match =
-          opt.dropdownValues?.find((v) => v.id === currentVal) ??
-          opt.swatchValues?.find((v) => v.id === currentVal);
-        if (match?.valueName) name = String(match.valueName);
+          opt.dropdownValues?.find((v) => v.id === currentVal || v.valueName === currentVal) ??
+          opt.swatchValues?.find((v) => v.id === currentVal || v.valueName === currentVal);
+        if (match?.valueName) {
+          name = String(match.valueName);
+        } else if (typeof currentVal === "string") {
+          name = currentVal;
+        }
       }
       selectedNames.push(name);
     }
@@ -849,6 +853,8 @@ export default function CustomizationForm({
       if (hit) {
         matchedId = hit.variantId;
         matchedEntry = { price: hit.price, comparePrice: hit.comparePrice };
+      } else {
+        console.log("--> Combo match FAILED. Not found in variantsByCombo.");
       }
     }
 
@@ -856,21 +862,23 @@ export default function CustomizationForm({
     // (older shops without conf_variants, where variations[].values[].product_id
     // is the variant ID directly).
     if (!matchedId && variantById.size > 0) {
-      for (const opt of options) {
+      for (const optId of variationOptionIds) {
+        const opt = options.find((o) => o.id === optId);
+        if (!opt) continue;
         const v = opt.currentValue;
         if (v == null) continue;
         const entry = variantById.get(String(v).trim());
         if (entry) {
           matchedId = String(v).trim();
           matchedEntry = entry;
+          break;
         }
       }
     }
 
     if (!matchedId || !matchedEntry) {
       if (typeof window !== "undefined") {
-        // eslint-disable-next-line no-console
-        console.debug("[variant] no match", {
+        console.warn("[variant] NO MATCH FOUND. Aborting URL/Price update.", {
           variationOptionIds,
           selectedNames,
           combosKnown: [...variantsByCombo.keys()],
