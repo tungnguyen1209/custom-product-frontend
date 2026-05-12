@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Search, ShoppingCart, Heart, Menu, X, ChevronDown, Gift } from "lucide-react";
+import { Search, ShoppingCart, Heart, Menu, X, ChevronDown, Gift, User } from "lucide-react";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
 import MiniCart from "./MiniCart";
 
 const navCategories = [
@@ -18,7 +19,11 @@ export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
   const { cart, isMiniCartOpen, openMiniCart, closeMiniCart } = useCart();
+  const { user, isAuthenticated } = useAuth();
   const itemCount = cart?.items.reduce((sum, i) => sum + i.quantity, 0) ?? 0;
+  const accountLabel = isAuthenticated
+    ? user?.firstName || user?.email?.split("@")[0] || "Account"
+    : "Sign in";
 
   return (
     <header className="sticky top-0 z-50 bg-white shadow-sm">
@@ -59,6 +64,13 @@ export default function Header() {
 
           {/* Right icons */}
           <div className="flex items-center gap-4">
+            <a
+              href={isAuthenticated ? "/account" : "/login"}
+              className="hidden lg:flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-[#ff6b6b] transition-colors"
+            >
+              <User className="w-5 h-5" />
+              <span className="max-w-[120px] truncate">{accountLabel}</span>
+            </a>
             <button className="hidden lg:flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-[#ff6b6b] transition-colors">
               <Heart className="w-5 h-5" />
               <span>Wishlist</span>

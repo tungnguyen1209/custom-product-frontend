@@ -25,6 +25,19 @@ export function decodeHtmlEntities(input: string): string {
   });
 }
 
+export const AUTH_TOKEN_STORAGE_KEY = 'auth_token';
+
+export function getAuthToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return window.localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
+}
+
+export function setAuthToken(token: string | null): void {
+  if (typeof window === 'undefined') return;
+  if (token) window.localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
+  else window.localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+}
+
 export async function apiRequest(
   endpoint: string,
   options: RequestInit = {},
@@ -36,6 +49,10 @@ export async function apiRequest(
   }
   if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {
     headers.set('Content-Type', 'application/json');
+  }
+  const token = getAuthToken();
+  if (token && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${token}`);
   }
 
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
