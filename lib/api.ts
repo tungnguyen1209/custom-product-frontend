@@ -75,6 +75,7 @@ export interface ProductBasicInfo {
   name: string;
   description: string | null;
   basePrice: number | string;
+  comparePrice: number | string | null;
   gallery: string[] | null;
   slug: string | null;
   shop: string | null;
@@ -98,6 +99,17 @@ export interface CustomizationTemplate {
   librarySegmentMap: any;
 }
 
+export interface VariantPriceEntry {
+  variantId: string;
+  price: number | null;
+  comparePrice: number | null;
+  option1: string | null;
+  option2: string | null;
+  option3: string | null;
+  title: string | null;
+  available: boolean;
+}
+
 export interface ProductCustomizationData {
   initialTemplateId?: string;
   optionSetUuid?: string;
@@ -109,6 +121,12 @@ export interface ProductCustomizationData {
   templateIds: string[];
   /** Initial template inline (saves a round-trip when initializing WM). */
   template?: CustomizationTemplate;
+  /** Per-variant prices keyed by Shopify variant ID — used for live price switching. */
+  variants?: VariantPriceEntry[];
+  /** Option IDs (in order: option1, option2, option3) whose values form the
+   *  variant combination. Frontend reads these to know which dropdowns are
+   *  variation selectors. */
+  variationOptionIds?: number[];
 }
 
 export interface ProductListItem {

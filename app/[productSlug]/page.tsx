@@ -6,6 +6,7 @@ import { ChevronRight, ZoomIn } from "lucide-react";
 import Header from "@/components/Header";
 import TemplatePreviewLoader from "@/components/TemplatePreviewLoader";
 import CustomizationFormLoader from "@/components/CustomizationFormLoader";
+import DynamicPrice from "@/components/DynamicPrice";
 import ShippingInfo from "@/components/ShippingInfo";
 import ProductDescription from "@/components/ProductDescription";
 import ReviewsSection from "@/components/ReviewsSection";
@@ -158,15 +159,14 @@ export default function ProductPage({ params }: Props) {
                 </span>
               </div>
 
-              <div className="flex items-baseline gap-3">
-                <span className="text-3xl font-bold text-gray-900">
-                  {product ? formatPrice(product.basePrice) : "$37.00"}
-                </span>
-                <span className="text-sm text-gray-400 line-through">$52.00</span>
-                <span className="text-sm font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full">
-                  29% OFF
-                </span>
-              </div>
+              <DynamicPrice
+                basePrice={product ? Number(product.basePrice) : 0}
+                baseComparePrice={
+                  product?.comparePrice != null
+                    ? Number(product.comparePrice)
+                    : null
+                }
+              />
 
               <CustomizationFormLoader
                 productId={productId}

@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  useEffect, useState, useRef, useCallback, ChangeEvent,
+  useEffect, useState, useRef, useCallback, useMemo, ChangeEvent,
 } from "react";
 import WM from "@megaads/wm";
 import {
@@ -761,6 +761,148 @@ export default function CustomizationForm({
     }
   }, [showRequiredErrors, missingRequired.length]);
 
+  /* ── Variant price + URL sync ─────────────────────────────────────── */
+  // Build a lookup from combination key "option1|option2|option3" → variant.
+  // Variant entries come from product_variants table (filled by the variant
+  // crawler) with their option1/2/3 columns matching Shopify's conf_variants.
+  const variantsByCombo = useMemo(() => {
+    const map = new Map<
+      string,
+      { variantId: string; price: number | null; comparePrice: number | null }
+    >();
+    for (const v of customization?.variants ?? []) {
+      const key = [v.option1 ?? "", v.option2 ?? "", v.option3 ?? ""].join("|");
+      map.set(key, {
+        variantId: v.variantId,
+        price: v.price,
+        comparePrice: v.comparePrice,
+      });
+    }
+    return map;
+  }, [customization]);
+
+  // Backward-compat: also keep a flat ID lookup so variants without option1/2/3
+  // (older shops, derived from variations[].values[].product_id) still work.
+  const variantById = useMemo(() => {
+    const map = new Map<
+      string,
+      { price: number | null; comparePrice: number | null }
+    >();
+    for (const v of customization?.variants ?? []) {
+      map.set(String(v.variantId), {
+        price: v.price,
+        comparePrice: v.comparePrice,
+      });
+    }
+    return map;
+  }, [customization]);
+
+  const variationOptionIds = useMemo(
+    () => customization?.variationOptionIds ?? [],
+    [customization],
+  );
+
+  // After every option mutation, read the user's current selection on the
+  // variation dropdowns (in option1, option2, option3 order), build a combo
+  // key, and look up the matching variant. Falls back to direct ID match if
+  // combo lookup misses (old data shape).
+  useEffect(() => {
+    if (options.length === 0) return;
+
+    // Collect value names from variation dropdowns in declared order.
+    const selectedNames: string[] = [];
+    for (const optId of variationOptionIds) {
+      const opt = options.find((o) => o.id === optId);
+      if (!opt) {
+        selectedNames.push("");
+        continue;
+      }
+      const currentVal = opt.currentValue;
+      let name = "";
+      if (currentVal != null) {
+        const match =
+          opt.dropdownValues?.find((v) => v.id === currentVal) ??
+          opt.swatchValues?.find((v) => v.id === currentVal);
+        if (match?.valueName) name = String(match.valueName);
+      }
+      selectedNames.push(name);
+    }
+
+    let matchedId: string | null = null;
+    let matchedEntry:
+      | { price: number | null; comparePrice: number | null }
+      | null = null;
+
+    // Primary path: combo match
+    if (
+      variantsByCombo.size > 0 &&
+      variationOptionIds.length > 0 &&
+      selectedNames.some((n) => n.length > 0)
+    ) {
+      const padded = [
+        selectedNames[0] ?? "",
+        selectedNames[1] ?? "",
+        selectedNames[2] ?? "",
+      ];
+      const key = padded.join("|");
+      const hit = variantsByCombo.get(key);
+      if (hit) {
+        matchedId = hit.variantId;
+        matchedEntry = { price: hit.price, comparePrice: hit.comparePrice };
+      }
+    }
+
+    // Fallback: an option's currentValue happens to BE a Shopify variant ID
+    // (older shops without conf_variants, where variations[].values[].product_id
+    // is the variant ID directly).
+    if (!matchedId && variantById.size > 0) {
+      for (const opt of options) {
+        const v = opt.currentValue;
+        if (v == null) continue;
+        const entry = variantById.get(String(v).trim());
+        if (entry) {
+          matchedId = String(v).trim();
+          matchedEntry = entry;
+        }
+      }
+    }
+
+    if (!matchedId || !matchedEntry) {
+      if (typeof window !== "undefined") {
+        // eslint-disable-next-line no-console
+        console.debug("[variant] no match", {
+          variationOptionIds,
+          selectedNames,
+          combosKnown: [...variantsByCombo.keys()],
+        });
+      }
+      return;
+    }
+
+    window.dispatchEvent(
+      new CustomEvent("wm-price-update", {
+        detail: {
+          variantId: matchedId,
+          price: matchedEntry.price,
+          comparePrice: matchedEntry.comparePrice,
+        },
+      }),
+    );
+
+    // Mirror the selected variant into the URL so the page is shareable and
+    // matches Shopify's `?variant=<id>` convention. Use replaceState so the
+    // back button still goes to the previous page, not the previous variant.
+    try {
+      const url = new URL(window.location.href);
+      if (url.searchParams.get("variant") !== matchedId) {
+        url.searchParams.set("variant", matchedId);
+        window.history.replaceState({}, "", url.toString());
+      }
+    } catch {
+      /* ignore — URL not parseable */
+    }
+  }, [options, variantsByCombo, variantById, variationOptionIds]);
+
   const focusMissing = useCallback((missing: IOption[]) => {
     if (missing.length === 0 || typeof document === "undefined") return;
     const el = document.querySelector<HTMLElement>(
@@ -827,11 +969,38 @@ export default function CustomizationForm({
       silentPreviewRef.current = false;
     }
 
+    // Use the price of the currently selected variant when available so the
+    // cart line reflects what the customer actually saw on the page.
+    let activeUnitPrice = basePrice;
+    if (variationOptionIds.length > 0 && variantsByCombo.size > 0) {
+      const names = variationOptionIds.map((optId) => {
+        const opt = options.find((o) => o.id === optId);
+        if (!opt || opt.currentValue == null) return "";
+        const v = opt.currentValue;
+        const match =
+          opt.dropdownValues?.find((d) => d.id === v) ??
+          opt.swatchValues?.find((s) => s.id === v);
+        return match?.valueName ?? "";
+      });
+      const padded = [names[0] ?? "", names[1] ?? "", names[2] ?? ""];
+      const hit = variantsByCombo.get(padded.join("|"));
+      if (hit?.price != null) activeUnitPrice = hit.price;
+    }
+    if (activeUnitPrice === basePrice && variantById.size > 0) {
+      // Fallback to direct ID match
+      for (const opt of options) {
+        const v = opt.currentValue;
+        if (v == null) continue;
+        const entry = variantById.get(String(v).trim());
+        if (entry?.price != null) activeUnitPrice = entry.price;
+      }
+    }
+
     try {
       await addItem({
         productId: parseInt(productId),
         productName,
-        unitPrice: basePrice,
+        unitPrice: activeUnitPrice,
         customization: selected,
         canvas,
         previewImageUrl: previewImageUrl ?? undefined,
@@ -844,7 +1013,7 @@ export default function CustomizationForm({
     } finally {
       setAdding(false);
     }
-  }, [adding, addItem, openMiniCart, productId, options, productName, basePrice, focusMissing]);
+  }, [adding, addItem, openMiniCart, productId, options, productName, basePrice, focusMissing, variantsByCombo, variantById, variationOptionIds]);
 
   const handlePreviewRequest = useCallback(() => {
     const missing = getMissingRequired(options);
