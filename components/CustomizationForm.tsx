@@ -824,18 +824,19 @@ export default function CustomizationForm({
       return match ? String(match.valueName) : null;
     });
 
-    return options.map(opt => {
+    const nextOptions = options.map(opt => {
       const vIdx = variationMap.get(opt.id);
       if (vIdx === undefined) return opt;
 
       const filterValue = (val: { valueName: string }) => {
         return allCombos.some(combo => {
-          for (let i = 0; i < currentSelectionNames.length; i++) {
-            if (i === vIdx) {
-              if (combo[i] !== val.valueName) return false;
-            } else {
-              // Match other selections if they are set
-              if (currentSelectionNames[i] && combo[i] !== currentSelectionNames[i]) return false;
+          // 1. Must match the value itself at its position
+          if (combo[vIdx] !== val.valueName) return false;
+
+          // 2. Hierarchical: Must match ALL selections that come BEFORE this one
+          for (let i = 0; i < vIdx; i++) {
+            if (currentSelectionNames[i] && combo[i] !== currentSelectionNames[i]) {
+              return false;
             }
           }
           return true;
@@ -850,6 +851,28 @@ export default function CustomizationForm({
       }
       return opt;
     });
+
+    // Final pass: if a variation option's currentValue is now filtered out,
+    // we should ideally reset it to the first available valid value to keep
+    // the UI consistent.
+    let changed = false;
+    for (const optId of variationOptionIds) {
+      const opt = nextOptions.find(o => o.id === optId);
+      if (!opt || opt.currentValue == null || opt.currentValue === "") continue;
+
+      const isStillValid = (opt.swatchValues ?? []).some(v => v.id === opt.currentValue || v.valueName === opt.currentValue) ||
+                          (opt.dropdownValues ?? []).some(v => v.id === opt.currentValue || v.valueName === opt.currentValue);
+
+      if (!isStillValid) {
+        const firstVal = (opt.swatchValues?.[0] || opt.dropdownValues?.[0]);
+        if (firstVal) {
+          opt.currentValue = typeof firstVal.id !== 'undefined' ? firstVal.id : firstVal.valueName;
+          changed = true;
+        }
+      }
+    }
+
+    return nextOptions;
   }, [options, variationOptionIds, variantsByCombo]);
 
   // After every option mutation, read the user's current selection on the
