@@ -69,6 +69,8 @@ interface ElementConfig {
   centerX: number;
   centerY: number;
   rotation: number;
+  flipX?: boolean;
+  flipY?: boolean;
   imageUrl?: string;
   imageId?: number | string;
   images?: gifthubImage[];
@@ -122,6 +124,8 @@ function placeImage(
   sHeight: number,
   displayScale: number,
   rotation: number,
+  flipX: boolean = false,
+  flipY: boolean = false,
 ) {
   const naturalW = oImg.width ?? 1;
   const naturalH = oImg.height ?? 1;
@@ -133,6 +137,8 @@ function placeImage(
     scaleX: objScale * displayScale,
     scaleY: objScale * displayScale,
     angle: rotation,
+    flipX: flipX === true,
+    flipY: flipY === true,
     selectable: false,
     evented: false,
     objectCaching: true,
@@ -495,20 +501,21 @@ function getImageUrl(el: TemplateElement): string | undefined {
 
 function elementFingerprint(el: TemplateElement): string {
   const cfg = el.config;
+  const flip = `${cfg.flipX === true ? 1 : 0}${cfg.flipY === true ? 1 : 0}`;
   if (el.type === "text_box_circular") {
     const tc = cfg.textConfig;
     const outline = typeof tc?.outlineColor === "object" ? tc?.outlineColor?.hex : tc?.outlineColor;
-    return `tc|${tc?.text}|${tc?.fill}|${tc?.fontSize}|${tc?.font}|${cfg.fontId}|${tc?.textAlign}|${tc?.outlineWidth}|${outline}|${tc?.tracking}|${tc?.horizontalDiameter}|${tc?.verticalDiameter}|${tc?.startAngle}|${tc?.endAngle}|${tc?.convex}|${cfg.centerX}|${cfg.centerY}|${cfg.rotation}`;
+    return `tc|${tc?.text}|${tc?.fill}|${tc?.fontSize}|${tc?.font}|${cfg.fontId}|${tc?.textAlign}|${tc?.outlineWidth}|${outline}|${tc?.tracking}|${tc?.horizontalDiameter}|${tc?.verticalDiameter}|${tc?.startAngle}|${tc?.endAngle}|${tc?.convex}|${cfg.centerX}|${cfg.centerY}|${cfg.rotation}|${flip}`;
   }
   if (el.type === "text_box" || el.type === "text") {
-    return `text|${cfg.textConfig?.text}|${cfg.textConfig?.fill}|${cfg.textConfig?.fontSize}|${cfg.textConfig?.font}|${cfg.fontId}|${cfg.textConfig?.multiline}|${cfg.centerX}|${cfg.centerY}|${cfg.sWidth}|${cfg.rotation}`;
+    return `text|${cfg.textConfig?.text}|${cfg.textConfig?.fill}|${cfg.textConfig?.fontSize}|${cfg.textConfig?.font}|${cfg.fontId}|${cfg.textConfig?.multiline}|${cfg.centerX}|${cfg.centerY}|${cfg.sWidth}|${cfg.rotation}|${flip}`;
   }
   const url = getImageUrl(el);
   if (el.source === "callie") {
     const ci = (cfg.images ?? []).find((img) => String(img.order) === String(cfg.imageId));
-    return `img|${url}|${ci?.scaleX}|${ci?.scaleY}|${ci?.left}|${ci?.top}|${cfg.centerX}|${cfg.centerY}|${cfg.sWidth}|${cfg.sHeight}|${cfg.rotation}`;
+    return `img|${url}|${ci?.scaleX}|${ci?.scaleY}|${ci?.left}|${ci?.top}|${cfg.centerX}|${cfg.centerY}|${cfg.sWidth}|${cfg.sHeight}|${cfg.rotation}|${flip}`;
   }
-  return `img|${url}|${cfg.centerX}|${cfg.centerY}|${cfg.sWidth}|${cfg.sHeight}|${cfg.rotation}`;
+  return `img|${url}|${cfg.centerX}|${cfg.centerY}|${cfg.sWidth}|${cfg.sHeight}|${cfg.rotation}|${flip}`;
 }
 
 /* ─── Image cache ─────────────────────────────────────────────────────── */
@@ -671,6 +678,9 @@ export default function TemplatePreview() {
           tracking: tc?.tracking ?? undefined,
         });
 
+        if (cfg.flipX === true) obj.set("flipX", true);
+        if (cfg.flipY === true) obj.set("flipY", true);
+
         objectMap.set(elId, { fingerprint: fp, fabricObj: obj });
         pendingAdds.push({ id: elId, order: el.order, obj });
         continue;
@@ -722,6 +732,9 @@ export default function TemplatePreview() {
           "center",
         );
 
+        if (cfg.flipX === true) obj.set("flipX", true);
+        if (cfg.flipY === true) obj.set("flipY", true);
+
         objectMap.set(elId, { fingerprint: fp, fabricObj: obj });
         pendingAdds.push({ id: elId, order: el.order, obj });
         continue;
@@ -764,7 +777,17 @@ export default function TemplatePreview() {
           centerY = cfg.centerY ?? 0;
         }
 
-        placeImage(oImg, centerX, centerY, sWidth, sHeight, scale, cfg.rotation ?? 0);
+        placeImage(
+          oImg,
+          centerX,
+          centerY,
+          sWidth,
+          sHeight,
+          scale,
+          cfg.rotation ?? 0,
+          cfg.flipX === true,
+          cfg.flipY === true,
+        );
         objectMap.set(elId, { fingerprint: fp, fabricObj: oImg });
         pendingAdds.push({ id: elId, order: el.order, obj: oImg });
         continue;
@@ -786,6 +809,8 @@ export default function TemplatePreview() {
         cfg.sHeight ?? 0,
         scale,
         cfg.rotation ?? 0,
+        cfg.flipX === true,
+        cfg.flipY === true,
       );
       objectMap.set(elId, { fingerprint: fp, fabricObj: oImg });
       pendingAdds.push({ id: elId, order: el.order, obj: oImg });
