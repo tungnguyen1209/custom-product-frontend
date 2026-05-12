@@ -802,17 +802,67 @@ export default function CustomizationForm({
     [customization],
   );
 
+  // Dynamically filter variation option values based on valid combinations.
+  // A value is "available" if there exists at least one valid variant (publicTitle)
+  // that matches this value AND all currently selected values of OTHER variation options.
+  const filteredOptions = useMemo(() => {
+    if (variationOptionIds.length === 0 || variantsByCombo.size === 0) return options;
+
+    const allCombos = Array.from(variantsByCombo.keys()).map(k =>
+      k.split(" / ").map(p => p.trim())
+    );
+
+    const variationMap = new Map<number, number>();
+    variationOptionIds.forEach((id, idx) => variationMap.set(id, idx));
+
+    const currentSelectionNames = variationOptionIds.map(optId => {
+      const opt = options.find(o => o.id === optId);
+      if (!opt || opt.currentValue == null || opt.currentValue === "") return null;
+      const match =
+        opt.dropdownValues?.find(v => v.id === opt.currentValue || v.valueName === opt.currentValue) ??
+        opt.swatchValues?.find(v => v.id === opt.currentValue || v.valueName === opt.currentValue);
+      return match ? String(match.valueName) : null;
+    });
+
+    return options.map(opt => {
+      const vIdx = variationMap.get(opt.id);
+      if (vIdx === undefined) return opt;
+
+      const filterValue = (val: { valueName: string }) => {
+        return allCombos.some(combo => {
+          for (let i = 0; i < currentSelectionNames.length; i++) {
+            if (i === vIdx) {
+              if (combo[i] !== val.valueName) return false;
+            } else {
+              // Match other selections if they are set
+              if (currentSelectionNames[i] && combo[i] !== currentSelectionNames[i]) return false;
+            }
+          }
+          return true;
+        });
+      };
+
+      if (opt.swatchValues) {
+        return { ...opt, swatchValues: opt.swatchValues.filter(filterValue) };
+      }
+      if (opt.dropdownValues) {
+        return { ...opt, dropdownValues: opt.dropdownValues.filter(filterValue) };
+      }
+      return opt;
+    });
+  }, [options, variationOptionIds, variantsByCombo]);
+
   // After every option mutation, read the user's current selection on the
   // variation dropdowns (in option1, option2, option3 order), build a combo
   // key, and look up the matching variant. Falls back to direct ID match if
   // combo lookup misses (old data shape).
   useEffect(() => {
-    if (options.length === 0) return;
+    if (filteredOptions.length === 0) return;
 
     // Collect value names from variation dropdowns in declared order.
     const selectedNames: string[] = [];
     for (const optId of variationOptionIds) {
-      const opt = options.find((o) => o.id === optId);
+      const opt = filteredOptions.find((o) => o.id === optId);
       if (!opt) {
         selectedNames.push("");
         continue;
@@ -1172,7 +1222,7 @@ export default function CustomizationForm({
   );
 
   /* Filter visible options */
-  const visibleOptions = options.filter(
+  const visibleOptions = filteredOptions.filter(
     (o) => o.isShow && !o.hideVisually && !o.isCallieHide,
   );
 
