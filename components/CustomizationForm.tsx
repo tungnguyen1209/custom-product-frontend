@@ -852,26 +852,6 @@ export default function CustomizationForm({
       return opt;
     });
 
-    // Final pass: if a variation option's currentValue is now filtered out,
-    // we should ideally reset it to the first available valid value to keep
-    // the UI consistent.
-    let changed = false;
-    for (const optId of variationOptionIds) {
-      const opt = nextOptions.find(o => o.id === optId);
-      if (!opt || opt.currentValue == null || opt.currentValue === "") continue;
-
-      const isStillValid = (opt.swatchValues ?? []).some(v => v.id === opt.currentValue || v.valueName === opt.currentValue) ||
-                          (opt.dropdownValues ?? []).some(v => v.id === opt.currentValue || v.valueName === opt.currentValue);
-
-      if (!isStillValid) {
-        const firstVal = (opt.swatchValues?.[0] || opt.dropdownValues?.[0]);
-        if (firstVal) {
-          opt.currentValue = typeof firstVal.id !== 'undefined' ? firstVal.id : firstVal.valueName;
-          changed = true;
-        }
-      }
-    }
-
     return nextOptions;
   }, [options, variationOptionIds, variantsByCombo]);
 
@@ -1193,18 +1173,22 @@ export default function CustomizationForm({
     async (option: IOption, val: SwatchVal | DropdownVal) => {
       const valueId = typeof val.id !== 'undefined' ? val.id : val.valueName;
       const key = `${option.id}:${valueId}`;
-      option.currentValue = valueId;
+      
+      const targetOption = options.find(o => o.id === option.id);
+      if (!targetOption) return;
+
+      targetOption.currentValue = valueId;
       syncOptions();
       setProcessingKey(key);
       try {
-        await serviceRef.current?.selectOptionValue(option, val);
+        await serviceRef.current?.selectOptionValue(targetOption, val);
       } catch {
         // ignore service errors — UI already shows the new value
       }
       syncOptions();
       setProcessingKey(null);
     },
-    [syncOptions],
+    [syncOptions, options],
   );
 
   /* Handle text input change (debounced) */
