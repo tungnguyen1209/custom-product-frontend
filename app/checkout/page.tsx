@@ -45,10 +45,25 @@ function Field({
 import { useCart } from "@/context/CartContext";
 import { apiRequest } from "@/lib/api";
 import { loadStripe } from "@stripe/stripe-js";
-import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
-import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
+import {
+  Elements,
+  CardElement,
+  useStripe,
+  useElements,
+} from "@stripe/react-stripe-js";
+import {
+  PayPalScriptProvider,
+  PayPalButtons,
+} from "@paypal/react-paypal-js";
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "pk_test_...");
+const STRIPE_PUBLISHABLE_KEY =
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "";
+const PAYPAL_CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "";
+const PAYPAL_CURRENCY = process.env.NEXT_PUBLIC_PAYPAL_CURRENCY || "USD";
+
+const stripePromise = STRIPE_PUBLISHABLE_KEY
+  ? loadStripe(STRIPE_PUBLISHABLE_KEY)
+  : null;
 
 /* ─── Order summary sidebar ─────────────────────────────────────────────── */
 
@@ -187,13 +202,16 @@ type FormState = {
   sameAsShipping: boolean;
 };
 
-export default function CheckoutPage() {
+function CheckoutInner() {
   const { cart, loading, clearCart } = useCart();
+  const stripe = useStripe();
+  const elements = useElements();
   const [done, setDone] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"card" | "paypal">("card");
   const [orderId, setOrderId] = useState<number | null>(null);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
 
   const [form, setForm] = useState<FormState>({
     email: "", firstName: "", lastName: "",
@@ -212,59 +230,157 @@ export default function CheckoutPage() {
   const shippingCost = form.shippingMethod === "express" ? 14.95 : (subtotal >= 60 ? 0 : 9.95);
   const finalTotal = subtotal + shippingCost;
 
+  const validateForm = (): string | null => {
+    if (!form.email.trim()) return "Email is required";
+    if (!form.firstName.trim() || !form.lastName.trim()) return "Name is required";
+    if (!form.address.trim()) return "Street address is required";
+    if (!form.suburb.trim()) return "Suburb/City is required";
+    if (!form.state) return "State is required";
+    if (!form.postcode.trim()) return "Postcode is required";
+    if (items.length === 0) return "Cart is empty";
+    return null;
+  };
+
+  const createOrder = async (): Promise<{ id: number }> => {
+    return apiRequest('/orders', {
+      method: 'POST',
+      body: JSON.stringify({
+        items: items.map((i) => ({
+          productId: i.productId,
+          productName: i.productName,
+          customization: i.customization,
+          quantity: i.quantity,
+          unitPrice: i.unitPrice,
+        })),
+        shippingMethod: form.shippingMethod,
+        shippingAddress: {
+          firstName: form.firstName,
+          lastName: form.lastName,
+          street: form.address,
+          suburb: form.suburb,
+          state: form.state,
+          postcode: form.postcode,
+          country: form.country,
+          phone: form.phone,
+          email: form.email,
+        },
+      }),
+    });
+  };
+
+  /** Card flow: create order → Stripe PaymentIntent → confirmCardPayment. */
   const handlePlace = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    setProcessing(true);
-    
-    try {
-      // 1. Create order
-      const order = await apiRequest('/orders', {
-        method: 'POST',
-        body: JSON.stringify({
-          items: items.map(i => ({
-            productId: i.productId,
-            productName: i.productName,
-            customization: i.customization,
-            quantity: i.quantity,
-            unitPrice: i.unitPrice,
-          })),
-          shippingMethod: form.shippingMethod,
-          shippingAddress: {
-            firstName: form.firstName,
-            lastName: form.lastName,
-            street: form.address,
-            suburb: form.suburb,
-            state: form.state,
-            postcode: form.postcode,
-            country: form.country,
-            phone: form.phone,
-            email: form.email,
-          },
-        }),
-      });
+    setPaymentError(null);
 
+    const validationError = validateForm();
+    if (validationError) {
+      setPaymentError(validationError);
+      return;
+    }
+
+    if (paymentMethod !== 'card') {
+      // PayPal flow is driven by PayPalButtons, not this button.
+      return;
+    }
+
+    if (!stripe || !elements) {
+      setPaymentError("Payment provider not ready yet. Please retry.");
+      return;
+    }
+    const cardElement = elements.getElement(CardElement);
+    if (!cardElement) {
+      setPaymentError("Card field missing");
+      return;
+    }
+
+    setProcessing(true);
+    try {
+      const order = await createOrder();
       setOrderId(order.id);
 
-      if (paymentMethod === 'card') {
-        // Stripe logic will be handled by Elements wrapper or separate component
-        // For simplicity in this demo, we'll call create-intent and then mark as done
-        const { clientSecret } = await apiRequest('/payment/create-intent', {
-          method: 'POST',
-          body: JSON.stringify({ orderId: order.id }),
-        });
-        
-        // In real app: confirm card payment with stripe.confirmCardPayment(clientSecret, ...)
-        console.log('Stripe client secret:', clientSecret);
-        await new Promise(r => setTimeout(r, 1500));
-      } else {
-        // PayPal logic
-        await new Promise(r => setTimeout(r, 1500));
+      const { clientSecret } = await apiRequest('/payment/create-intent', {
+        method: 'POST',
+        body: JSON.stringify({ orderId: order.id }),
+      });
+
+      const result = await stripe.confirmCardPayment(clientSecret, {
+        payment_method: {
+          card: cardElement,
+          billing_details: {
+            email: form.email,
+            name: `${form.firstName} ${form.lastName}`.trim(),
+            phone: form.phone || undefined,
+            address: {
+              line1: form.address,
+              line2: form.address2 || undefined,
+              city: form.suburb,
+              state: form.state,
+              postal_code: form.postcode,
+              country: 'AU',
+            },
+          },
+        },
+      });
+
+      if (result.error) {
+        setPaymentError(result.error.message || "Card payment failed");
+        return;
+      }
+      if (result.paymentIntent?.status !== 'succeeded') {
+        setPaymentError(
+          `Payment status: ${result.paymentIntent?.status ?? 'unknown'}`,
+        );
+        return;
       }
 
       await clearCart();
       setDone(true);
-    } catch (err: any) {
-      alert(err.message);
+    } catch (err: unknown) {
+      setPaymentError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  /** PayPal flow: PayPalButtons creates our order then a PayPal order. */
+  const handlePaypalCreateOrder = async (): Promise<string> => {
+    const validationError = validateForm();
+    if (validationError) {
+      setPaymentError(validationError);
+      throw new Error(validationError);
+    }
+    setPaymentError(null);
+
+    const order = await createOrder();
+    setOrderId(order.id);
+
+    const paypal = await apiRequest('/payment/paypal/create-order', {
+      method: 'POST',
+      body: JSON.stringify({ orderId: order.id }),
+    });
+    return paypal.id;
+  };
+
+  const handlePaypalApprove = async (data: { orderID: string }): Promise<void> => {
+    if (!orderId) {
+      setPaymentError("Internal order missing");
+      return;
+    }
+    setProcessing(true);
+    try {
+      const result = await apiRequest('/payment/paypal/capture-order', {
+        method: 'POST',
+        body: JSON.stringify({ orderId, paypalOrderId: data.orderID }),
+      });
+      if (result.status !== 'COMPLETED') {
+        setPaymentError(`PayPal status: ${result.status}`);
+        return;
+      }
+      await clearCart();
+      setDone(true);
+    } catch (err: unknown) {
+      setPaymentError(err instanceof Error ? err.message : String(err));
     } finally {
       setProcessing(false);
     }
@@ -415,22 +531,89 @@ export default function CheckoutPage() {
 
                   {paymentMethod === 'card' && (
                     <div className="flex flex-col gap-4">
-                      <div className="p-4 border border-gray-200 rounded-xl bg-gray-50/50">
-                        <p className="text-xs text-gray-500 mb-2">Secure card payment via Stripe</p>
-                        {/* In real app: use <CardElement /> from Stripe */}
-                        <div className="h-10 bg-white border border-gray-200 rounded-lg flex items-center px-3 text-sm text-gray-400 italic">
-                          Stripe Card Element Placeholder
-                        </div>
+                      <div className="p-4 border border-gray-200 rounded-xl bg-white">
+                        <p className="text-xs text-gray-500 mb-3">
+                          Secure card payment via Stripe
+                        </p>
+                        {!STRIPE_PUBLISHABLE_KEY ? (
+                          <div className="px-3 py-3 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700">
+                            <p className="font-bold mb-1">
+                              Stripe is not configured
+                            </p>
+                            <p className="leading-relaxed">
+                              Set <code className="bg-red-100 px-1 rounded">NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY</code> in
+                              your frontend <code className="bg-red-100 px-1 rounded">.env.local</code>, then restart{" "}
+                              <code className="bg-red-100 px-1 rounded">npm run dev</code>.
+                            </p>
+                          </div>
+                        ) : (
+                          <div
+                            className="px-3.5 border border-gray-200 rounded-lg bg-white focus-within:border-[#ff6b6b] focus-within:ring-2 focus-within:ring-[#ff6b6b]/20 transition-all"
+                            style={{ paddingTop: 12, paddingBottom: 12 }}
+                          >
+                            <CardElement
+                              options={{
+                                hidePostalCode: true,
+                                disableLink: true,
+                                style: {
+                                  base: {
+                                    fontSize: '15px',
+                                    color: '#1f2937',
+                                    fontFamily:
+                                      'ui-sans-serif, system-ui, -apple-system, sans-serif',
+                                    '::placeholder': { color: '#9ca3af' },
+                                    iconColor: '#6b7280',
+                                  },
+                                  invalid: {
+                                    color: '#ef4444',
+                                    iconColor: '#ef4444',
+                                  },
+                                },
+                              }}
+                            />
+                          </div>
+                        )}
+                        <p className="text-[10px] text-gray-400 mt-2">
+                          Test card: 4242 4242 4242 4242 · any future date · any CVC
+                        </p>
                       </div>
                     </div>
                   )}
 
                   {paymentMethod === 'paypal' && (
-                    <div className="p-4 border border-gray-200 rounded-xl bg-gray-50/50 text-center">
-                      <p className="text-xs text-gray-500 mb-4">You will be redirected to PayPal to complete your purchase.</p>
-                      <div className="h-10 bg-[#ffc439] rounded-lg flex items-center justify-center font-bold text-blue-900 italic">
-                        PayPal Checkout
-                      </div>
+                    <div className="p-4 border border-gray-200 rounded-xl bg-white">
+                      <p className="text-xs text-gray-500 mb-4">
+                        Pay with your PayPal account or any card via PayPal.
+                      </p>
+                      {PAYPAL_CLIENT_ID ? (
+                        <PayPalButtons
+                          style={{
+                            layout: 'vertical',
+                            color: 'gold',
+                            shape: 'rect',
+                            label: 'paypal',
+                          }}
+                          disabled={processing || items.length === 0}
+                          createOrder={() => handlePaypalCreateOrder()}
+                          onApprove={(data) => handlePaypalApprove(data)}
+                          onError={(err) =>
+                            setPaymentError(
+                              err instanceof Error ? err.message : String(err),
+                            )
+                          }
+                          onCancel={() => setPaymentError("PayPal payment cancelled")}
+                        />
+                      ) : (
+                        <div className="text-xs text-red-500 font-medium">
+                          PayPal is not configured (NEXT_PUBLIC_PAYPAL_CLIENT_ID missing)
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {paymentError && (
+                    <div className="mt-3 px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700 font-medium">
+                      {paymentError}
                     </div>
                   )}
                 </div>
@@ -441,13 +624,22 @@ export default function CheckoutPage() {
                 <div className="lg:sticky lg:top-24 flex flex-col gap-4">
                   <OrderSummary items={items} shippingCost={shippingCost} finalTotal={finalTotal} />
 
-                  <button
-                    onClick={() => handlePlace()}
-                    disabled={processing || items.length === 0}
-                    className="w-full py-4 rounded-2xl bg-[#ff6b6b] hover:bg-[#ee5253] disabled:opacity-70 text-white font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#ff6b6b]/25"
-                  >
-                    {processing ? "Processing..." : `Place Order · $${finalTotal.toFixed(2)}`}
-                  </button>
+                  {paymentMethod === 'card' && (
+                    <button
+                      onClick={() => handlePlace()}
+                      disabled={processing || items.length === 0}
+                      className="w-full py-4 rounded-2xl bg-[#ff6b6b] hover:bg-[#ee5253] disabled:opacity-70 text-white font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#ff6b6b]/25"
+                    >
+                      {processing
+                        ? "Processing..."
+                        : `Place Order · $${finalTotal.toFixed(2)}`}
+                    </button>
+                  )}
+                  {paymentMethod === 'paypal' && (
+                    <p className="text-center text-xs text-gray-500">
+                      Click the PayPal button above to complete your purchase.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -456,5 +648,26 @@ export default function CheckoutPage() {
       </main>
       <Footer />
     </>
+  );
+}
+
+export default function CheckoutPage() {
+  // Wrap the inner page in Stripe Elements + PayPal SDK script providers.
+  // We use loadStripe(null) gracefully — if STRIPE_PUBLISHABLE_KEY isn't set,
+  // Elements becomes a no-op and useStripe() returns null. The card flow will
+  // surface a clear error rather than crashing the page.
+  return (
+    <Elements stripe={stripePromise}>
+      <PayPalScriptProvider
+        options={{
+          clientId: PAYPAL_CLIENT_ID || 'test',
+          currency: PAYPAL_CURRENCY,
+          intent: 'capture',
+          components: 'buttons',
+        }}
+      >
+        <CheckoutInner />
+      </PayPalScriptProvider>
+    </Elements>
   );
 }
