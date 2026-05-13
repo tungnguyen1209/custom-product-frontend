@@ -4,6 +4,8 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import Header from "@/components/Header";
 import CustomizationFormLoader from "@/components/CustomizationFormLoader";
+import CustomizationFormSkeleton from "@/components/CustomizationFormSkeleton";
+import DeferMount from "@/components/DeferMount";
 import DynamicPrice from "@/components/DynamicPrice";
 import ShippingInfo from "@/components/ShippingInfo";
 import ProductDescription from "@/components/ProductDescription";
@@ -283,33 +285,48 @@ export default async function ProductPage({ params }: Props) {
                 .
               </p>
 
-              <CustomizationFormLoader
-                productId={productId}
-                productName={productName}
-                basePrice={safeBasePrice}
-              />
+              {/* Defer the heavy customization stack (WM SDK + Fabric prep)
+                  until the browser is idle or the user moves toward the form.
+                  Skeleton is shown immediately so the layout is stable. */}
+              <DeferMount
+                trigger="idle"
+                fallback={<CustomizationFormSkeleton />}
+                timeoutMs={3000}
+              >
+                <CustomizationFormLoader
+                  productId={productId}
+                  productName={productName}
+                  basePrice={safeBasePrice}
+                />
+              </DeferMount>
             </div>
           </div>
         </section>
 
-        <RelatedProducts productId={productId} />
+        {/* Below-the-fold — mount only when scrolling near so they don't
+            block the main thread during the initial paint. */}
+        <DeferMount trigger="visible" rootMargin="400px">
+          <RelatedProducts productId={productId} />
+        </DeferMount>
 
-        <section
-          id="reviews"
-          className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12"
-        >
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 xl:gap-16 pt-4 border-t border-gray-100">
-            <div className="flex flex-col gap-12">
-              <ReviewsSection />
+        <DeferMount trigger="visible" rootMargin="400px">
+          <section
+            id="reviews"
+            className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12"
+          >
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 xl:gap-16 pt-4 border-t border-gray-100">
+              <div className="flex flex-col gap-12">
+                <ReviewsSection />
+              </div>
+              <div className="flex flex-col gap-12">
+                <ShippingInfo />
+                <ProductDescription
+                  description={product.description ?? null}
+                />
+              </div>
             </div>
-            <div className="flex flex-col gap-12">
-              <ShippingInfo />
-              <ProductDescription
-                description={product.description ?? null}
-              />
-            </div>
-          </div>
-        </section>
+          </section>
+        </DeferMount>
       </main>
 
       <Footer />

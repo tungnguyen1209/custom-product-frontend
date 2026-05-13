@@ -29,11 +29,14 @@ export default function TemplatePreviewLoader({ gallery, alt }: Props) {
     return () => window.removeEventListener("wm-template-update", handleUpdate);
   }, []);
 
+  // Only render <TemplatePreview /> after the user opts into the live canvas.
+  // Otherwise the dynamic import (Fabric.js, ~300KB) fires on page load and
+  // blocks the main thread even though the canvas is CSS-hidden.
   return (
     <ProductGallery
       showCanvas={showCanvas}
       setShowCanvas={setShowCanvas}
-      canvas={<TemplatePreview />}
+      canvas={showCanvas ? <TemplatePreview /> : null}
       images={gallery}
       alt={alt}
     />

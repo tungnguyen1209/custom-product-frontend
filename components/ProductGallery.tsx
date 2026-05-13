@@ -123,6 +123,8 @@ export default function ProductGallery({
                 src={img.url}
                 alt={img.alt}
                 className="w-full h-full object-cover"
+                loading="lazy"
+                decoding="async"
               />
             ) : (
               <div
@@ -162,7 +164,7 @@ export default function ProductGallery({
             className="flex w-full h-full transition-transform duration-500 ease-out"
             style={{ transform: `translateX(-${activeIndex * 100}%)` }}
           >
-            {productImages.map((img) => (
+            {productImages.map((img, i) => (
               <div
                 key={img.id}
                 className={`w-full h-full flex-shrink-0 ${img.url ? "bg-white" : `bg-gradient-to-br ${img.bg}`} flex items-center justify-center cursor-zoom-in`}
@@ -174,6 +176,9 @@ export default function ProductGallery({
                     src={img.url}
                     alt={img.alt}
                     className="w-full h-full object-contain"
+                    loading={i === 0 ? "eager" : "lazy"}
+                    decoding="async"
+                    fetchPriority={i === 0 ? "high" : "auto"}
                   />
                 ) : (
                   <div className="text-center">
