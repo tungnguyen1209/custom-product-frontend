@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -54,9 +55,18 @@ function buildSeoDescription(product: ProductBasicInfo): string {
   return truncate(fallback, SEO_DESCRIPTION_LIMIT);
 }
 
+// Dedupe getProduct(id) within a single request — generateMetadata and the
+// page component both fetch the same product. React `cache` memoizes by args
+// for the duration of the request. The fetch itself is also tagged with
+// `next.revalidate: 60` so the response stays cached across requests for a
+// minute, reducing backend hits for repeat visitors and crawlers.
+const fetchProduct = cache(async (id: string): Promise<ProductBasicInfo> =>
+  getProduct(id, { next: { revalidate: 60, tags: [`product:${id}`] } }),
+);
+
 async function safeGetProduct(id: string): Promise<ProductBasicInfo | null> {
   try {
-    return await getProduct(id);
+    return await fetchProduct(id);
   } catch {
     return null;
   }

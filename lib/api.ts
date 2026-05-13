@@ -239,8 +239,11 @@ export async function getTags(): Promise<TaxonomyTerm[]> {
   return apiRequest('/products/tags');
 }
 
-export async function getProduct(id: string | number): Promise<ProductBasicInfo> {
-  const product: ProductBasicInfo = await apiRequest(`/products/${id}`);
+export async function getProduct(
+  id: string | number,
+  init?: RequestInit,
+): Promise<ProductBasicInfo> {
+  const product: ProductBasicInfo = await apiRequest(`/products/${id}`, init);
   return {
     ...product,
     name: product.name ? decodeHtmlEntities(product.name) : product.name,
