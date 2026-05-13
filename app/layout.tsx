@@ -9,10 +9,24 @@ const geistSans = Geist({
   subsets: ["latin"],
 });
 
+const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+
 export const metadata: Metadata = {
-  title: "Gifthub | Personalized Gifts for Your Loved Ones",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "Gifthub | Personalized Gifts for Your Loved Ones",
+    template: "%s | Gifthub",
+  },
   description:
     "Discover unique, personalized gifts for family, friends, and pets at Gifthub. Custom designs that tell your story.",
+  applicationName: "Gifthub",
+  openGraph: {
+    type: "website",
+    siteName: "Gifthub",
+    locale: "en_US",
+  },
+  twitter: { card: "summary_large_image" },
 };
 
 export default function RootLayout({
