@@ -64,17 +64,21 @@ export default function RelatedProducts({ productId }: { productId: string | nul
     let cancelled = false;
     async function fetchRelated() {
       try {
+        // 2 rows × max 5 columns = 10 products. Anything beyond would force
+        // a 6th column and break the "max 5 per row" requirement.
         const res = await fetch(
-          `${API_BASE_URL}/products/${encodeURIComponent(productId!)}/related?limit=15`,
+          `${API_BASE_URL}/products/${encodeURIComponent(productId!)}/related?limit=10`,
           { headers: { accept: "application/json" } }
         );
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = (await res.json()) as { items?: RelatedProduct[] };
         if (!cancelled) {
-          const items = (data.items ?? []).map((p) => ({
-            ...p,
-            name: p.name ? decodeHtmlEntities(p.name) : p.name,
-          }));
+          const items = (data.items ?? [])
+            .slice(0, 10)
+            .map((p) => ({
+              ...p,
+              name: p.name ? decodeHtmlEntities(p.name) : p.name,
+            }));
           setProducts(items);
         }
       } catch (err) {
@@ -136,7 +140,15 @@ export default function RelatedProducts({ productId }: { productId: string | nul
           onMouseMove={handleMouseMove}
           className="flex overflow-x-auto pb-6 scrollbar-hide snap-x snap-mandatory -mx-4 px-4 sm:mx-0 sm:px-0 cursor-grab active:cursor-grabbing select-none scroll-smooth"
         >
-          <div className="grid grid-rows-2 grid-flow-col gap-4 w-max">
+          <div
+            className="gap-4 w-max"
+            style={{
+              display: "grid",
+              // Always 5 columns — items fill row 1 left-to-right first, then
+              // wrap into row 2. 8 items → row 1: 5, row 2: 3 (cols 4-5 empty).
+              gridTemplateColumns: "repeat(5, auto)",
+            }}
+          >
             {products.map((product) => (
               <a
                 key={product.id}
