@@ -201,6 +201,18 @@ export default async function ProductPage({ params }: Props) {
         }}
       />
 
+      {/* Preload the hero image so the browser kicks off the request before
+          React hydrates the gallery client component. Hoisted to <head> by
+          React 19. fetchPriority="high" promotes it above icon / font fetches. */}
+      {galleryImages[0] && (
+        <link
+          rel="preload"
+          as="image"
+          href={galleryImages[0]}
+          fetchPriority="high"
+        />
+      )}
+
       <Header />
 
       <main className="flex-1">

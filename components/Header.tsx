@@ -1,10 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { Search, ShoppingCart, Heart, Menu, X, ChevronDown, Gift, User } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
-import MiniCart from "./MiniCart";
+
+// MiniCart is a drawer — only mount once it has actually been opened. Saves
+// ~210 LOC + dependencies from the initial Header chunk on every page load.
+const MiniCart = dynamic(() => import("./MiniCart"), { ssr: false });
 
 const navCategories = [
   "Family",
@@ -145,7 +149,9 @@ export default function Header() {
         </div>
       )}
 
-      <MiniCart open={isMiniCartOpen} onClose={closeMiniCart} />
+      {isMiniCartOpen && (
+        <MiniCart open={isMiniCartOpen} onClose={closeMiniCart} />
+      )}
     </header>
   );
 }
