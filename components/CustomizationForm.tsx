@@ -245,6 +245,69 @@ function SwatchOption({
 
 /* ─── Variation option (rendered as radio pill cards) ─────────────────── */
 
+/** True when the option group is some flavour of "Color" / "Colour". */
+function isColorVariation(option: IOption): boolean {
+  const label = option.label?.toLowerCase() ?? "";
+  return label.includes("color") || label.includes("colour");
+}
+
+interface ResolvedColor {
+  /** Canonical CSS color string (e.g. `#ff0000`) — falsy when the label
+   *  doesn't resolve to a real CSS color. */
+  bg: string | null;
+  /** Whether the bg is light enough that we should render dark text on it. */
+  isLight: boolean;
+}
+
+/** Convert a free-text colour label (e.g. `"Royal Blue"`, `"#aabbcc"`) into a
+ *  canonical CSS colour by round-tripping through a canvas. Returns `null`
+ *  when the label isn't a recognisable CSS colour. Runs only on the client. */
+function resolveColorLabel(label: string): ResolvedColor {
+  if (typeof document === "undefined") return { bg: null, isLight: false };
+  const candidate = label.trim().toLowerCase().replace(/\s+/g, "");
+  if (!candidate) return { bg: null, isLight: false };
+
+  const ctx = document.createElement("canvas").getContext("2d");
+  if (!ctx) return { bg: null, isLight: false };
+
+  // Use a sentinel so we can detect when the browser rejected the colour
+  // (it silently keeps the previous fillStyle in that case).
+  const SENTINEL = "#abcabc";
+  ctx.fillStyle = SENTINEL;
+  ctx.fillStyle = candidate;
+  const resolved = ctx.fillStyle as string;
+  if (resolved.toLowerCase() === SENTINEL) {
+    return { bg: null, isLight: false };
+  }
+
+  let r = 0;
+  let g = 0;
+  let b = 0;
+  if (resolved.startsWith("#")) {
+    let hex = resolved.slice(1);
+    if (hex.length === 3) {
+      hex = hex
+        .split("")
+        .map((c) => c + c)
+        .join("");
+    }
+    r = parseInt(hex.slice(0, 2), 16);
+    g = parseInt(hex.slice(2, 4), 16);
+    b = parseInt(hex.slice(4, 6), 16);
+  } else {
+    const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(resolved);
+    if (m) {
+      r = Number(m[1]);
+      g = Number(m[2]);
+      b = Number(m[3]);
+    }
+  }
+  // Perceived luminance (Rec. 601). > 0.62 ≈ comfortable threshold for dark
+  // text on the background.
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return { bg: resolved, isLight: luminance > 0.62 };
+}
+
 function VariationRadioOption({
   option,
   onSelect,
@@ -256,8 +319,16 @@ function VariationRadioOption({
   loadingValueId?: number | string | null;
   showError?: boolean;
 }) {
-  const values = option.dropdownValues ?? [];
   const errored = showError && option.required && !isOptionFilled(option);
+  const isColor = isColorVariation(option);
+
+  // Stabilize the reference — `option.dropdownValues ?? []` produces a fresh
+  // empty array on every render when the option has no values, which makes
+  // useMemo below recompute pointlessly.
+  const values = useMemo(
+    () => option.dropdownValues ?? [],
+    [option.dropdownValues],
+  );
 
   // Customily can hand back values that share the same `id` (it's actually a
   // template/group identifier, not a per-value primary key). `valueName` is the
@@ -281,13 +352,28 @@ function VariationRadioOption({
 
   // De-dupe by valueName — multiple Customily values can share the same id,
   // so id-based dedupe drops legitimate options.
-  const seen = new Set<string>();
-  const uniqueValues: DropdownVal[] = [];
-  for (const val of values) {
-    if (seen.has(val.valueName)) continue;
-    seen.add(val.valueName);
-    uniqueValues.push(val);
-  }
+  const uniqueValues = useMemo(() => {
+    const seen = new Set<string>();
+    const out: DropdownVal[] = [];
+    for (const val of values) {
+      if (seen.has(val.valueName)) continue;
+      seen.add(val.valueName);
+      out.push(val);
+    }
+    return out;
+  }, [values]);
+
+  // Resolve CSS colours for Colour-typed options. Done once per value-set on
+  // the client; falls back to the regular pill rendering when the label
+  // doesn't resolve.
+  const colorMap = useMemo(() => {
+    if (!isColor) return null;
+    const map = new Map<string, ResolvedColor>();
+    for (const val of uniqueValues) {
+      map.set(val.valueName, resolveColorLabel(val.valueName));
+    }
+    return map;
+  }, [isColor, uniqueValues]);
 
   return (
     <div className="flex flex-col gap-2.5">
@@ -310,12 +396,53 @@ function VariationRadioOption({
             loadingValueId != null &&
             (loadingValueId === valKey ||
               String(loadingValueId) === String(valKey));
+          const disabled = !!loadingValueId && !isThisLoading;
+          const colorMeta = colorMap?.get(val.valueName);
+
+          if (colorMeta && colorMeta.bg) {
+            // Colour swatch: a plain coloured circle. The label is only kept
+            // in the tooltip / accessibility name so the swatch grid stays
+            // visually clean. Selected state is an outer coral ring with a
+            // checkmark drawn over the swatch in a contrasting tint.
+            const checkColor = colorMeta.isLight ? "#1f2937" : "#ffffff";
+            return (
+              <button
+                key={valKey}
+                type="button"
+                onClick={() => !loadingValueId && onSelect(val)}
+                disabled={disabled}
+                aria-pressed={isActive}
+                aria-label={val.valueName}
+                title={val.valueName}
+                className={`relative w-10 h-10 rounded-full transition-all select-none focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ff6b6b]/40 ${
+                  isActive
+                    ? "ring-2 ring-offset-2 ring-[#ff6b6b] shadow-md"
+                    : "ring-1 ring-inset ring-black/10 hover:ring-black/30 hover:scale-110"
+                } ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                style={{ backgroundColor: colorMeta.bg }}
+              >
+                {isActive && (
+                  <Check
+                    className="absolute inset-0 m-auto w-4 h-4"
+                    strokeWidth={3}
+                    style={{ color: checkColor }}
+                  />
+                )}
+                {isThisLoading && (
+                  <Loader2 className="absolute -top-1 -right-1 w-3.5 h-3.5 text-[#ff6b6b] animate-spin bg-white rounded-full" />
+                )}
+              </button>
+            );
+          }
+
+          // Default text-only pill for non-colour variations (or colours we
+          // couldn't resolve to a real CSS value).
           return (
             <button
               key={valKey}
               type="button"
               onClick={() => !loadingValueId && onSelect(val)}
-              disabled={!!loadingValueId && !isThisLoading}
+              disabled={disabled}
               aria-pressed={isActive}
               className={`relative inline-flex items-center justify-center min-w-[90px] px-5 py-3 rounded-2xl border-2 cursor-pointer transition-all select-none focus:outline-none focus:ring-2 focus:ring-[#ff6b6b]/30 ${
                 isActive
@@ -323,7 +450,7 @@ function VariationRadioOption({
                   : errored
                     ? "border-red-300 bg-white hover:border-red-400"
                     : "border-gray-300 bg-white hover:border-gray-400"
-              } ${!!loadingValueId && !isThisLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+              } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               <span
                 className={`text-sm font-bold tracking-wide ${

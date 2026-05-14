@@ -259,7 +259,10 @@ export default async function ProductsPage({ searchParams }: PageProps) {
 /* ─── Product card ─────────────────────────────────────────────── */
 
 function ProductGridCard({ product }: { product: ProductListItem }) {
-  const href = product.url || `/s-p${product.id}`;
+  // Backend returns `url` as `/<slug>-p<id>` already; fall back to a synthesized
+  // canonical form if it's missing for any reason. The `[productSlug]` route
+  // also redirects non-canonical leading slugs back to the proper one.
+  const href = product.url || `/product-p${product.id}`;
   const fallbackImage = "https://placehold.co/480x480?text=No+Image";
 
   return (

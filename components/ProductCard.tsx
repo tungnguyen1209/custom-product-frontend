@@ -19,6 +19,7 @@ export interface ProductCardData {
 }
 
 export default function ProductCard({
+  id,
   slug,
   name,
   category,
@@ -36,7 +37,7 @@ export default function ProductCard({
 
   return (
     <Link
-      href={`/${slug}`}
+      href={`/${slug + '-p' + id}`}
       className="group flex flex-col bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300"
     >
       {/* ── Image ─────────────────────────────────────────────────────── */}

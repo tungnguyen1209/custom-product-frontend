@@ -152,7 +152,7 @@ export default function RelatedProducts({ productId }: { productId: string | nul
             {products.map((product) => (
               <a
                 key={product.id}
-                href={'s-p' + product.id}
+                href={product.url || `/product-p${product.id}`}
                 rel="noopener noreferrer"
                 className="group bg-white w-44 sm:w-56 rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 flex flex-col snap-start shrink-0"
               >

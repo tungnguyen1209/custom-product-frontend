@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
@@ -32,11 +32,37 @@ const SITE_URL =
 const CURRENCY = "USD";
 const SEO_DESCRIPTION_LIMIT = 160;
 
-function extractProductId(slug: string): string | null {
-  // URL pattern is `/s-p{id}` — strip the 3-char prefix to recover the id.
-  if (!slug || slug.length <= 3) return null;
-  const id = slug.slice(3);
-  return id || null;
+/**
+ * Parse a `<anything>-p<id>` slug. The leading part is informational (used
+ * for SEO + nice URLs) and may contain dashes itself; the id is the numeric
+ * suffix after the *last* `-p`. Returns `null` if the slug doesn't fit the
+ * pattern.
+ */
+function parseProductSlug(
+  slug: string,
+): { id: string; leading: string } | null {
+  if (!slug) return null;
+  const match = /^(.*)-p(\d+)$/.exec(slug);
+  if (!match) return null;
+  return { leading: match[1] ?? "", id: match[2] };
+}
+
+/**
+ * Canonical URL slug for a product = `<product.slug>-p<id>` (falls back to
+ * `product-p<id>` when the product has no slug yet). Letters lower-cased and
+ * stripped to a URL-safe shape so user-supplied leading text doesn't drift
+ * from the canonical form.
+ */
+function canonicalSlugFor(
+  product: { id: number; slug: string | null },
+): string {
+  const cleaned = (product.slug ?? "")
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+  const leading = cleaned || "product";
+  return `${leading}-p${product.id}`;
 }
 
 function stripHtml(input: string): string {
@@ -93,15 +119,15 @@ const fetchReviewSummary = cache(
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { productSlug } = await params;
-  const productId = extractProductId(productSlug);
-  if (!productId) {
+  const parsed = parseProductSlug(productSlug);
+  if (!parsed) {
     return {
       title: "Product not found",
       robots: { index: false, follow: false },
     };
   }
 
-  const product = await safeGetProduct(productId);
+  const product = await safeGetProduct(parsed.id);
   if (!product) {
     return {
       title: "Product not found",
@@ -109,10 +135,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
   }
 
-  const name = product.name || `Product ${productId}`;
+  const name = product.name || `Product ${parsed.id}`;
   const description = buildSeoDescription(product);
   const images = (product.gallery ?? []).slice(0, 4);
-  const path = `/${productSlug}`;
+  // Always point the canonical URL at the proper slug form so non-canonical
+  // visits (e.g. `/anything-p123`) don't compete with the real product page
+  // in search engines.
+  const path = `/${canonicalSlugFor(product)}`;
 
   return {
     title: name,
@@ -140,25 +169,33 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ProductPage({ params }: Props) {
   const { productSlug } = await params;
-  const productId = extractProductId(productSlug);
-  if (!productId) notFound();
+  const parsed = parseProductSlug(productSlug);
+  if (!parsed) notFound();
 
   const [product, reviewSummary] = await Promise.all([
-    safeGetProduct(productId),
-    fetchReviewSummary(productId),
+    safeGetProduct(parsed.id),
+    fetchReviewSummary(parsed.id),
   ]);
   // Backend filters isActive: true in findByExternalId, so an inactive (or
   // missing) product surfaces as a 404 here.
   if (!product) notFound();
 
-  const productName = product.name || `Product ${productId}`;
+  // If the visitor landed on a non-canonical leading slug (e.g.
+  // `random-text-p123`), 301-redirect them to the proper `<slug>-p<id>` URL.
+  // This keeps inbound links permissive while keeping the canonical URL clean.
+  const canonical = canonicalSlugFor(product);
+  if (canonical !== productSlug) {
+    redirect(`/${canonical}`);
+  }
+
+  const productName = product.name || `Product ${parsed.id}`;
   const reviewCount = reviewSummary?.total ?? 0;
   const averageRating = reviewSummary?.averageRating ?? 0;
   const galleryImages = product.gallery ?? [];
   const basePrice = Number(product.basePrice);
   const comparePrice =
     product.comparePrice != null ? Number(product.comparePrice) : null;
-  const productPath = `/${productSlug}`;
+  const productPath = `/${canonical}`;
   const productUrl = `${SITE_URL}${productPath}`;
   const cleanDescription = product.description
     ? stripHtml(product.description)
@@ -362,7 +399,7 @@ export default async function ProductPage({ params }: Props) {
                 timeoutMs={3000}
               >
                 <CustomizationFormLoader
-                  productId={productId}
+                  productId={parsed.id}
                   productName={productName}
                   basePrice={safeBasePrice}
                 />
@@ -374,7 +411,7 @@ export default async function ProductPage({ params }: Props) {
         {/* Below-the-fold — mount only when scrolling near so they don't
             block the main thread during the initial paint. */}
         <DeferMount trigger="visible" rootMargin="400px">
-          <RelatedProducts productId={productId} />
+          <RelatedProducts productId={parsed.id} />
         </DeferMount>
 
         <DeferMount trigger="visible" rootMargin="400px">
@@ -384,7 +421,7 @@ export default async function ProductPage({ params }: Props) {
           >
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 xl:gap-16 pt-4 border-t border-gray-100">
               <div className="flex flex-col gap-12">
-                <ReviewsSection productId={productId} />
+                <ReviewsSection productId={parsed.id} />
               </div>
               <div className="flex flex-col gap-12">
                 <ShippingInfo />

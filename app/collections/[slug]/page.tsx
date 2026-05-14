@@ -156,9 +156,10 @@ export default async function CollectionPage({
 /* ─── Product card (data-only — no rating/category placeholders) ─── */
 
 function CollectionProductCard({ product }: { product: ProductListItem }) {
-  // Backend returns `url` as `/s-p${id}` — matches the product page route
-  // which strips `s-p` and calls `getProduct(internalId)`.
-  const href = product.url || `/s-p${product.id}`;
+  // Backend returns `url` as `/<slug>-p<id>` (canonical). The `[productSlug]`
+  // route redirects any non-canonical leading slug to the proper one, so the
+  // fallback below is just a safety net.
+  const href = product.url || `/product-p${product.id}`;
   const fallbackImage = "https://placehold.co/480x480?text=No+Image";
 
   return (
