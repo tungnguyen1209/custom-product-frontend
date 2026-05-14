@@ -261,3 +261,76 @@ export async function getProductCustomization(
   const json = await apiRequest(`/product/customization/${id}`);
   return json?.result ?? json;
 }
+
+export type ProductReviewSource = 'judgeme' | 'customer';
+
+export interface ProductReview {
+  reviewId: string;
+  productId: number | null;
+  rating: number;
+  title: string | null;
+  body: string | null;
+  author: string | null;
+  pictures: string[] | null;
+  verifiedBuyer: boolean;
+  source: ProductReviewSource;
+  helpfulCount: number;
+  reviewedAt: string | null;
+  createdAt: string;
+}
+
+export interface ReviewRatingBreakdownEntry {
+  stars: number;
+  count: number;
+  pct: number;
+}
+
+export type ReviewSort = 'newest' | 'oldest' | 'highest' | 'lowest' | 'helpful';
+
+export interface ProductReviewsResponse {
+  items: ProductReview[];
+  total: number;
+  page: number;
+  limit: number;
+  averageRating: number;
+  breakdown: ReviewRatingBreakdownEntry[];
+}
+
+export interface CreateReviewInput {
+  rating: number;
+  title?: string | null;
+  body?: string | null;
+  author?: string | null;
+  pictures?: string[] | null;
+}
+
+export async function getProductReviews(
+  productId: number | string,
+  options: { page?: number; limit?: number; sort?: ReviewSort } = {},
+  init?: RequestInit,
+): Promise<ProductReviewsResponse> {
+  const qs = new URLSearchParams();
+  if (options.page != null) qs.set('page', String(options.page));
+  if (options.limit != null) qs.set('limit', String(options.limit));
+  if (options.sort) qs.set('sort', options.sort);
+  const suffix = qs.toString() ? `?${qs.toString()}` : '';
+  return apiRequest(`/reviews/product/${productId}${suffix}`, init);
+}
+
+export async function createProductReview(
+  productId: number | string,
+  input: CreateReviewInput,
+): Promise<ProductReview> {
+  return apiRequest(`/reviews/product/${productId}`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export async function markReviewHelpful(
+  reviewId: string,
+): Promise<{ helpfulCount: number }> {
+  return apiRequest(`/reviews/${encodeURIComponent(reviewId)}/helpful`, {
+    method: 'POST',
+  });
+}

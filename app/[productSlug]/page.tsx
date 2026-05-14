@@ -14,7 +14,12 @@ import ReviewsSection from "@/components/ReviewsSection";
 import RelatedProducts from "@/components/RelatedProducts";
 import Footer from "@/components/Footer";
 import StarRating from "@/components/StarRating";
-import { getProduct, type ProductBasicInfo } from "@/lib/api";
+import {
+  getProduct,
+  getProductReviews,
+  type ProductBasicInfo,
+  type ProductReviewsResponse,
+} from "@/lib/api";
 import ProductGallerySection from "./ProductGallerySection";
 
 interface Props {
@@ -72,6 +77,20 @@ async function safeGetProduct(id: string): Promise<ProductBasicInfo | null> {
   }
 }
 
+const fetchReviewSummary = cache(
+  async (id: string): Promise<ProductReviewsResponse | null> => {
+    try {
+      return await getProductReviews(
+        id,
+        { page: 1, limit: 1 },
+        { next: { revalidate: 60, tags: [`product-reviews:${id}`] } },
+      );
+    } catch {
+      return null;
+    }
+  },
+);
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { productSlug } = await params;
   const productId = extractProductId(productSlug);
@@ -124,12 +143,17 @@ export default async function ProductPage({ params }: Props) {
   const productId = extractProductId(productSlug);
   if (!productId) notFound();
 
-  const product = await safeGetProduct(productId);
+  const [product, reviewSummary] = await Promise.all([
+    safeGetProduct(productId),
+    fetchReviewSummary(productId),
+  ]);
   // Backend filters isActive: true in findByExternalId, so an inactive (or
   // missing) product surfaces as a 404 here.
   if (!product) notFound();
 
   const productName = product.name || `Product ${productId}`;
+  const reviewCount = reviewSummary?.total ?? 0;
+  const averageRating = reviewSummary?.averageRating ?? 0;
   const galleryImages = product.gallery ?? [];
   const basePrice = Number(product.basePrice);
   const comparePrice =
@@ -169,6 +193,13 @@ export default async function ProductPage({ params }: Props) {
   };
   if (galleryImages.length > 0) {
     productJsonLd.image = galleryImages;
+  }
+  if (reviewCount > 0) {
+    productJsonLd.aggregateRating = {
+      "@type": "AggregateRating",
+      ratingValue: averageRating.toFixed(1),
+      reviewCount,
+    };
   }
 
   const breadcrumbJsonLd = {
@@ -284,13 +315,28 @@ export default async function ProductPage({ params }: Props) {
               </h1>
 
               <div className="flex items-center gap-3 flex-wrap">
-                <StarRating rating={4.8} count={9} size="md" />
-                <a
-                  href="#reviews"
-                  className="text-sm text-[#ff6b6b] font-medium hover:underline"
-                >
-                  See all reviews
-                </a>
+                {reviewCount > 0 ? (
+                  <>
+                    <StarRating
+                      rating={averageRating}
+                      count={reviewCount}
+                      size="md"
+                    />
+                    <a
+                      href="#reviews"
+                      className="text-sm text-[#ff6b6b] font-medium hover:underline"
+                    >
+                      See all reviews
+                    </a>
+                  </>
+                ) : (
+                  <a
+                    href="#reviews"
+                    className="text-sm text-[#ff6b6b] font-medium hover:underline"
+                  >
+                    Be the first to review
+                  </a>
+                )}
               </div>
 
               <DynamicPrice
@@ -338,7 +384,7 @@ export default async function ProductPage({ params }: Props) {
           >
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 xl:gap-16 pt-4 border-t border-gray-100">
               <div className="flex flex-col gap-12">
-                <ReviewsSection />
+                <ReviewsSection productId={productId} />
               </div>
               <div className="flex flex-col gap-12">
                 <ShippingInfo />

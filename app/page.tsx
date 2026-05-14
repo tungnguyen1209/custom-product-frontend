@@ -99,7 +99,7 @@ export default function ProductPage() {
         </section>
 
         {/* Reviews */}
-        <ReviewsSection />
+        <ReviewsSection productId="2497801633" />
 
         {/* Related products */}
         <RelatedProducts productId={null} />

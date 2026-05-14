@@ -698,11 +698,24 @@ export default function TemplatePreview() {
           isMultiline = true;
         }
 
+        // Center origin so left/top is the rotation pivot. We also need to
+        // honour textAlign — the design's centerX/centerY refer to the centre
+        // of the sWidth × sHeight design box, but the glyphs inside that box
+        // sit at the alignment edge. Textbox handles that automatically when
+        // given an explicit width; IText auto-sizes to content, so we have to
+        // shift it ourselves and rotate the shift to match cfg.rotation.
+        const textAlign = cfg.textConfig?.textAlign ?? "left";
+        const rotation = cfg.rotation ?? 0;
         const configs = {
           fontSize: (cfg.textConfig?.fontSize ?? 16) * scale,
           fontFamily: fontUrl || cfg.textConfig?.fontFamily || "sans-serif",
           fill: cfg.textConfig?.fill ?? "#000000",
-          angle: cfg.rotation ?? 0,
+          textAlign,
+          angle: rotation,
+          originX: "center" as const,
+          originY: "center" as const,
+          left: (cfg.centerX ?? 0) * scale,
+          top: (cfg.centerY ?? 0) * scale,
           selectable: false,
           evented: false,
           multiline: isMultiline,
@@ -710,9 +723,11 @@ export default function TemplatePreview() {
         let obj;
         if (isMultiline) {
           obj = new fabric.Textbox(text, configs);
+          // Width must be scaled to canvas pixels — fontSize is already scaled
+          // above, so the box and the text need to live in the same units.
           obj.set({
-            width: cfg.sWidth ?? 0,
-          })
+            width: (cfg.sWidth ?? 0) * scale,
+          });
         } else {
           obj = new fabric.IText(text, configs);
           // Shrink font to fit bounding box width when text overflows
@@ -724,16 +739,35 @@ export default function TemplatePreview() {
               obj.initDimensions();
             }
           }
+          // IText doesn't honour textAlign visually (it auto-sizes to its own
+          // text). Compensate by shifting the IText's centre toward the right
+          // or left edge of the design box, in the box's local frame, then
+          // rotate that shift so it follows cfg.rotation.
+          if (textAlign !== "center" && cfg.sWidth && cfg.sWidth > 0) {
+            const boxWidth = cfg.sWidth * scale;
+            const textWidth = obj.width ?? 0;
+            const slack = boxWidth - textWidth;
+            if (slack > 0) {
+              const localOffset =
+                textAlign === "right" ? slack / 2 : -slack / 2;
+              const angleRad = (rotation * Math.PI) / 180;
+              obj.set({
+                left:
+                  (cfg.centerX ?? 0) * scale +
+                  localOffset * Math.cos(angleRad),
+                top:
+                  (cfg.centerY ?? 0) * scale +
+                  localOffset * Math.sin(angleRad),
+              });
+            }
+          }
         }
-
-        obj.setPositionByOrigin(
-          new fabric.Point((cfg.centerX ?? 0) * scale, (cfg.centerY ?? 0) * scale),
-          "center",
-          "center",
-        );
 
         if (cfg.flipX === true) obj.set("flipX", true);
         if (cfg.flipY === true) obj.set("flipY", true);
+        // Refresh cached corner / bbox coords after every mutation so the
+        // rendered transform matches what we just wrote.
+        obj.setCoords();
 
         objectMap.set(elId, { fingerprint: fp, fabricObj: obj });
         pendingAdds.push({ id: elId, order: el.order, obj });

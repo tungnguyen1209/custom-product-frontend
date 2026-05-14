@@ -243,7 +243,107 @@ function SwatchOption({
   );
 }
 
-/* ─── Dropdown option ──────────────────────────────────────────────────── */
+/* ─── Variation option (rendered as radio pill cards) ─────────────────── */
+
+function VariationRadioOption({
+  option,
+  onSelect,
+  loadingValueId,
+  showError,
+}: {
+  option: IOption;
+  onSelect: (val: DropdownVal) => void;
+  loadingValueId?: number | string | null;
+  showError?: boolean;
+}) {
+  const values = option.dropdownValues ?? [];
+  const errored = showError && option.required && !isOptionFilled(option);
+
+  // Customily can hand back values that share the same `id` (it's actually a
+  // template/group identifier, not a per-value primary key). `valueName` is the
+  // only field guaranteed to be unique within an option, so prefer it for
+  // matching and rendering — falling back to id only when no value collides.
+  const isValueSelected = (val: DropdownVal): boolean => {
+    const current = option.currentValue;
+    if (current === undefined || current === null || current === "") return false;
+    if (val.valueName === current) return true;
+    if (val.id !== undefined) {
+      const idShared = values.some(
+        (other) => other !== val && other.id === val.id,
+      );
+      if (!idShared) {
+        if (val.id === current) return true;
+        if (String(val.id) === String(current)) return true;
+      }
+    }
+    return false;
+  };
+
+  // De-dupe by valueName — multiple Customily values can share the same id,
+  // so id-based dedupe drops legitimate options.
+  const seen = new Set<string>();
+  const uniqueValues: DropdownVal[] = [];
+  for (const val of values) {
+    if (seen.has(val.valueName)) continue;
+    seen.add(val.valueName);
+    uniqueValues.push(val);
+  }
+
+  return (
+    <div className="flex flex-col gap-2.5">
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-bold text-gray-800">
+          {option.label}
+          {option.required && <span className="text-red-500 ml-0.5">*</span>}
+        </span>
+        {errored && (
+          <span className="text-xs text-red-500 font-semibold">
+            Please select an option
+          </span>
+        )}
+      </div>
+      <div className="flex flex-wrap gap-2.5">
+        {uniqueValues.map((val) => {
+          const valKey = val.valueName;
+          const isActive = isValueSelected(val);
+          const isThisLoading =
+            loadingValueId != null &&
+            (loadingValueId === valKey ||
+              String(loadingValueId) === String(valKey));
+          return (
+            <button
+              key={valKey}
+              type="button"
+              onClick={() => !loadingValueId && onSelect(val)}
+              disabled={!!loadingValueId && !isThisLoading}
+              aria-pressed={isActive}
+              className={`relative inline-flex items-center justify-center min-w-[90px] px-5 py-3 rounded-2xl border-2 cursor-pointer transition-all select-none focus:outline-none focus:ring-2 focus:ring-[#ff6b6b]/30 ${
+                isActive
+                  ? "border-[#ff6b6b] bg-white shadow-sm"
+                  : errored
+                    ? "border-red-300 bg-white hover:border-red-400"
+                    : "border-gray-300 bg-white hover:border-gray-400"
+              } ${!!loadingValueId && !isThisLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+            >
+              <span
+                className={`text-sm font-bold tracking-wide ${
+                  isActive ? "text-[#ff6b6b]" : "text-gray-800"
+                }`}
+              >
+                {val.valueName}
+              </span>
+              {isThisLoading && (
+                <Loader2 className="absolute -top-1.5 -right-1.5 w-4 h-4 text-[#ff6b6b] animate-spin bg-white rounded-full" />
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Dropdown option (native <select>) ───────────────────────────────── */
 
 function DropdownOption({
   option,
@@ -267,10 +367,14 @@ function DropdownOption({
       </label>
       <div className="relative">
         <select
-          value={option.currentValue}
+          value={option.currentValue ?? ""}
           disabled={isLoading}
           onChange={(e) => {
-            const chosen = values.find((v) => typeof v.id !== 'undefined' ? String(v.id) == e.target.value : v.valueName == e.target.value);
+            const chosen = values.find((v) =>
+              typeof v.id !== "undefined"
+                ? String(v.id) === e.target.value
+                : v.valueName === e.target.value,
+            );
             if (chosen) onSelect(chosen);
           }}
           className={`w-full px-4 py-3 pr-10 rounded-xl border text-sm font-medium focus:outline-none focus:ring-2 bg-white appearance-none cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed transition-all ${
@@ -281,7 +385,18 @@ function DropdownOption({
         >
           <option value="">— Select {option.label} —</option>
           {values.map((val) => (
-            <option key={typeof val.id !== 'undefined' ? val.id : val.valueName} value={typeof val.id !== 'undefined' ? val.id : val.valueName}>
+            <option
+              key={
+                typeof val.id !== "undefined"
+                  ? String(val.id)
+                  : val.valueName
+              }
+              value={
+                typeof val.id !== "undefined"
+                  ? String(val.id)
+                  : val.valueName
+              }
+            >
               {val.valueName}
             </option>
           ))}
@@ -293,7 +408,9 @@ function DropdownOption({
         )}
       </div>
       {errored && (
-        <p className="text-xs text-red-500 font-semibold">Please select an option</p>
+        <p className="text-xs text-red-500 font-semibold">
+          Please select an option
+        </p>
       )}
     </div>
   );
@@ -802,52 +919,147 @@ export default function CustomizationForm({
     [customization],
   );
 
-  // Dynamically filter variation option values based on valid combinations.
-  // A value is "available" if there exists at least one valid variant (publicTitle)
-  // that matches this value AND all currently selected values of OTHER variation options.
+  // Rebuild each variation option's value list from the Shopify variants so
+  // the radio pills always show every valid Style/Size/etc. combination, even
+  // when Customily's `dropdownValues` is configured with fewer entries than
+  // Shopify has variants. Falls back to the option's original values when no
+  // variants are available.
   const filteredOptions = useMemo(() => {
     if (variationOptionIds.length === 0 || variantsByCombo.size === 0) return options;
 
-    const allCombos = Array.from(variantsByCombo.keys()).map(k =>
-      k.split(" / ").map(p => p.trim())
+    // Lenient comparison — Shopify variant titles and Customily value names can
+    // disagree on whitespace, case, and fancy quotes (e.g. `17″ x 11″` vs
+    // `17″x11″` vs `17x11`). Strip everything except alphanumerics so values
+    // match regardless of formatting.
+    const normalize = (s: unknown): string =>
+      String(s ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
+
+    const allCombos = Array.from(variantsByCombo.keys()).map((k) =>
+      k.split(" / ").map((p) => p.trim()),
     );
 
     const variationMap = new Map<number, number>();
     variationOptionIds.forEach((id, idx) => variationMap.set(id, idx));
 
-    const currentSelectionNames = variationOptionIds.map(optId => {
-      const opt = options.find(o => o.id === optId);
+    const currentSelectionNames = variationOptionIds.map((optId) => {
+      const opt = options.find((o) => o.id === optId);
       if (!opt || opt.currentValue == null || opt.currentValue === "") return null;
       const match =
-        opt.dropdownValues?.find(v => v.id === opt.currentValue || v.valueName === opt.currentValue) ??
-        opt.swatchValues?.find(v => v.id === opt.currentValue || v.valueName === opt.currentValue);
+        opt.dropdownValues?.find(
+          (v) => v.id === opt.currentValue || v.valueName === opt.currentValue,
+        ) ??
+        opt.swatchValues?.find(
+          (v) => v.id === opt.currentValue || v.valueName === opt.currentValue,
+        );
       return match ? String(match.valueName) : null;
     });
+    const currentSelectionKeys = currentSelectionNames.map(normalize);
 
-    const nextOptions = options.map(opt => {
+    // Per-position list of valid valueNames derived from the variants.
+    const validNamesByPosition = new Map<number, string[]>();
+    for (let vIdx = 0; vIdx < variationOptionIds.length; vIdx++) {
+      const seenKeys = new Set<string>();
+      const ordered: string[] = [];
+      for (const combo of allCombos) {
+        const cell = combo[vIdx];
+        if (cell == null) continue;
+        let earlierMatches = true;
+        for (let i = 0; i < vIdx; i++) {
+          if (
+            currentSelectionKeys[i] &&
+            normalize(combo[i]) !== currentSelectionKeys[i]
+          ) {
+            earlierMatches = false;
+            break;
+          }
+        }
+        if (!earlierMatches) continue;
+        const key = normalize(cell);
+        if (seenKeys.has(key)) continue;
+        seenKeys.add(key);
+        ordered.push(cell);
+      }
+      validNamesByPosition.set(vIdx, ordered);
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const buildVariationValues = <T extends { valueName: string; id?: any }>(
+      original: T[] | undefined,
+      validNames: string[],
+      optId: number,
+    ): T[] => {
+      const out: T[] = [];
+      for (let i = 0; i < validNames.length; i++) {
+        const variantName = validNames[i];
+        // Prefer exact-name match first — Customily can have two distinct
+        // entries that normalize identically (e.g. `24″ x 16″` for POSTER and
+        // `24″x16″` for CANVAS), each with its own templateId.
+        const exact = original?.find((v) => v.valueName === variantName);
+        const key = normalize(variantName);
+        const match = exact ?? original?.find((v) => normalize(v.valueName) === key);
+        if (match) {
+          out.push({ ...match, valueName: variantName });
+        } else {
+          // Synthesize using the first real entry as a template so optional
+          // fields the service expects still exist.
+          const template = (original?.[0] ?? {}) as T;
+          out.push({
+            ...template,
+            id: `__variant_${optId}_${key || i}`,
+            valueName: variantName,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          } as any);
+        }
+      }
+      return out;
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const pickFallback = (values: Array<{ id?: any; valueName: string }>) => {
+      const first = values[0];
+      if (!first) return null;
+      const idShared =
+        first.id !== undefined &&
+        values.some((v) => v !== first && v.id === first.id);
+      return idShared || first.id === undefined
+        ? first.valueName
+        : (first.id as string | number);
+    };
+
+    const isCurrentValid = (
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      values: Array<{ id?: any; valueName: string }>,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      current: any,
+    ): boolean => {
+      if (current === undefined || current === null || current === "") return false;
+      return values.some(
+        (v) => v.valueName === current || (v.id !== undefined && v.id === current),
+      );
+    };
+
+    const nextOptions = options.map((opt) => {
       const vIdx = variationMap.get(opt.id);
       if (vIdx === undefined) return opt;
-
-      const filterValue = (val: { valueName: string }) => {
-        return allCombos.some(combo => {
-          // 1. Must match the value itself at its position
-          if (combo[vIdx] !== val.valueName) return false;
-
-          // 2. Hierarchical: Must match ALL selections that come BEFORE this one
-          for (let i = 0; i < vIdx; i++) {
-            if (currentSelectionNames[i] && combo[i] !== currentSelectionNames[i]) {
-              return false;
-            }
-          }
-          return true;
-        });
-      };
+      const validNames = validNamesByPosition.get(vIdx) ?? [];
 
       if (opt.swatchValues) {
-        return { ...opt, swatchValues: opt.swatchValues.filter(filterValue) };
+        const built = buildVariationValues(opt.swatchValues, validNames, opt.id);
+        const corrected = isCurrentValid(built, opt.currentValue)
+          ? opt.currentValue
+          : (pickFallback(built) ?? opt.currentValue);
+        return { ...opt, swatchValues: built, currentValue: corrected };
       }
       if (opt.dropdownValues) {
-        return { ...opt, dropdownValues: opt.dropdownValues.filter(filterValue) };
+        const built = buildVariationValues(
+          opt.dropdownValues,
+          validNames,
+          opt.id,
+        );
+        const corrected = isCurrentValid(built, opt.currentValue)
+          ? opt.currentValue
+          : (pickFallback(built) ?? opt.currentValue);
+        return { ...opt, dropdownValues: built, currentValue: corrected };
       }
       return opt;
     });
@@ -890,14 +1102,31 @@ export default function CustomizationForm({
       | { price: number | null; comparePrice: number | null }
       | null = null;
 
-    // Primary path: combo match
+    // Primary path: combo match (exact first, then normalized fallback for
+    // sources where the dropdown valueName disagrees with the variant
+    // publicTitle on whitespace/quotes).
     if (
       variantsByCombo.size > 0 &&
       variationOptionIds.length > 0 &&
       selectedNames.some((n) => n.length > 0)
     ) {
-      const comboKey = selectedNames.filter(n => n.length > 0).join(" / ");
-      const hit = variantsByCombo.get(comboKey);
+      const filtered = selectedNames.filter((n) => n.length > 0);
+      const comboKey = filtered.join(" / ");
+      let hit = variantsByCombo.get(comboKey);
+
+      if (!hit) {
+        const normalize = (s: string): string =>
+          s.toLowerCase().replace(/[^a-z0-9]/g, "");
+        const target = filtered.map(normalize).join("|");
+        for (const [k, v] of variantsByCombo) {
+          const candidate = k.split(" / ").map((p) => normalize(p.trim())).join("|");
+          if (candidate === target) {
+            hit = v;
+            break;
+          }
+        }
+      }
+
       if (hit) {
         matchedId = hit.variantId;
         matchedEntry = { price: hit.price, comparePrice: hit.comparePrice };
@@ -1140,6 +1369,36 @@ export default function CustomizationForm({
         serviceRef.current = svc;
         await svc.fetchImageUrlsFirstTime();
 
+        // Pre-fill the first value ONLY for variation dropdowns (the ones
+        // rendered as radio pills). Non-variation dropdowns keep the original
+        // "— Select X —" placeholder behaviour so the user picks explicitly.
+        // We mutate `currentValue` directly and skip calling `selectOptionValue`
+        // per option — re-entering the service per option during init triggers
+        // extra element rebuilds that can leave duplicate state.
+        const initVariationIds = new Set<number>(
+          customization?.variationOptionIds ?? [],
+        );
+        const initOpts = svc.getOptions() as unknown as IOption[];
+        for (const opt of initOpts) {
+          if (opt.type !== "dropdown") continue;
+          if (!initVariationIds.has(opt.id)) continue;
+          if (isOptionFilled(opt)) continue;
+          const first = opt.dropdownValues?.[0];
+          if (!first) continue;
+          // Same defence as `handleSelectValue` — when ids are shared, the
+          // `valueName` is the only field that uniquely identifies a value.
+          const idShared =
+            first.id !== undefined &&
+            (opt.dropdownValues ?? []).some(
+              (v) => v !== first && v.id === first.id,
+            );
+          opt.currentValue = idShared
+            ? first.valueName
+            : typeof first.id !== "undefined"
+              ? first.id
+              : first.valueName;
+        }
+
         if (!cancelled) {
           setOptions([...svc.getOptions()]);
           setReady(true);
@@ -1171,11 +1430,26 @@ export default function CustomizationForm({
   /* Handle swatch / dropdown selection */
   const handleSelectValue = useCallback(
     async (option: IOption, val: SwatchVal | DropdownVal) => {
-      const valueId = typeof val.id !== 'undefined' ? val.id : val.valueName;
-      const key = `${option.id}:${valueId}`;
-      
-      const targetOption = options.find(o => o.id === option.id);
+      const targetOption = options.find((o) => o.id === option.id);
       if (!targetOption) return;
+
+      // If the value's `id` is shared with another value in the same option
+      // (Customily template/group ids are not unique per value), the id can't
+      // uniquely identify the selection — store the valueName instead so the
+      // pill highlights deterministically.
+      const peers =
+        (targetOption.dropdownValues as Array<{ id?: unknown }> | undefined) ??
+        (targetOption.swatchValues as Array<{ id?: unknown }> | undefined) ??
+        [];
+      const idShared =
+        val.id !== undefined &&
+        peers.some((p) => p !== val && p.id === val.id);
+      const valueId = idShared
+        ? val.valueName
+        : typeof val.id !== "undefined"
+          ? val.id
+          : val.valueName;
+      const key = `${option.id}:${valueId}`;
 
       targetOption.currentValue = valueId;
       syncOptions();
@@ -1303,14 +1577,34 @@ export default function CustomizationForm({
               />
             );
           } else if (option.type === "dropdown") {
-            inner = (
-              <DropdownOption
-                option={option}
-                onSelect={(val) => handleSelectValue(option, val)}
-                isLoading={processingKey?.startsWith(`${option.id}:`) ?? false}
-                showError={showRequiredErrors}
-              />
-            );
+            const prefix = `${option.id}:`;
+            const isVariation = variationOptionIds.includes(option.id);
+            if (isVariation) {
+              const rawLoading = processingKey?.startsWith(prefix)
+                ? processingKey.slice(prefix.length)
+                : null;
+              const loadingValueId =
+                rawLoading != null && !isNaN(Number(rawLoading))
+                  ? Number(rawLoading)
+                  : rawLoading;
+              inner = (
+                <VariationRadioOption
+                  option={option}
+                  onSelect={(val) => handleSelectValue(option, val)}
+                  loadingValueId={loadingValueId}
+                  showError={showRequiredErrors}
+                />
+              );
+            } else {
+              inner = (
+                <DropdownOption
+                  option={option}
+                  onSelect={(val) => handleSelectValue(option, val)}
+                  isLoading={processingKey?.startsWith(prefix) ?? false}
+                  showError={showRequiredErrors}
+                />
+              );
+            }
           } else if (option.type === "text-input") {
             inner = (
               <TextInputOption

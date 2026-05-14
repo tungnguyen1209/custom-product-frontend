@@ -1,125 +1,184 @@
 "use client";
 
-import { useState } from "react";
-import { ThumbsUp, ChevronDown } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ChevronDown, Loader2, Pencil, ThumbsUp } from "lucide-react";
 import StarRating from "./StarRating";
+import ReviewForm from "./ReviewForm";
+import {
+  type ProductReview,
+  type ProductReviewsResponse,
+  type ReviewRatingBreakdownEntry,
+  type ReviewSort,
+  getProductReviews,
+  markReviewHelpful,
+} from "@/lib/api";
 
-interface Review {
-  id: number;
-  author: string;
-  avatar: string;
-  rating: number;
-  date: string;
-  title: string;
-  body: string;
-  helpful: number;
-  verified: boolean;
-  images?: string[];
+interface ReviewsSectionProps {
+  productId: string | number;
 }
 
-const reviews: Review[] = [
-  {
-    id: 1,
-    author: "Jessica M.",
-    avatar: "JM",
-    rating: 5,
-    date: "12 Apr 2026",
-    title: "Absolutely beautiful — my daughter cried happy tears!",
-    body: "I ordered this for my daughter's university graduation and it arrived in a gorgeous gift box. The personalisation was perfect and the cartoon character looked just like her. She wore it proudly at the ceremony and everyone asked where I got it. 100% recommend!",
-    helpful: 24,
-    verified: true,
-  },
-  {
-    id: 2,
-    author: "Thomas K.",
-    avatar: "TK",
-    rating: 5,
-    date: "3 Apr 2026",
-    title: "Great quality, fast delivery",
-    body: "Ordered this as a surprise gift. The quality is much better than I expected — the material is silky and the print is vibrant. Arrived well within the estimated time and the packaging made it feel extra special. Will definitely order again for my other kids' graduations.",
-    helpful: 18,
-    verified: true,
-  },
-  {
-    id: 3,
-    author: "Priya S.",
-    avatar: "PS",
-    rating: 4,
-    date: "28 Mar 2026",
-    title: "Lovely keepsake",
-    body: "Really pleased with this purchase. The sash is exactly as shown and the name and year are printed clearly. Took about 10 days to arrive which was fine. Only reason for 4 stars is I wished there were more cartoon character options. Otherwise perfect!",
-    helpful: 9,
-    verified: true,
-  },
-  {
-    id: 4,
-    author: "David L.",
-    avatar: "DL",
-    rating: 5,
-    date: "20 Mar 2026",
-    title: "Perfect graduation gift",
-    body: "Bought this for my best friend's graduation. She absolutely loved it! The sash is high quality and the personalisation looks very professional. The gift box made unwrapping it feel really special. Highly recommend for any graduate.",
-    helpful: 15,
-    verified: true,
-  },
-  {
-    id: 5,
-    author: "Emma W.",
-    avatar: "EW",
-    rating: 5,
-    date: "15 Mar 2026",
-    title: "Exceeded expectations",
-    body: "I was a bit hesitant buying online but this exceeded all my expectations. The sash is beautifully made and the colours are vivid. Came in a lovely gift box. The recipient was so touched by the personalisation. Will be ordering one for every graduation in the family going forward!",
-    helpful: 31,
-    verified: true,
-  },
-  {
-    id: 6,
-    author: "Rachel N.",
-    avatar: "RN",
-    rating: 4,
-    date: "8 Mar 2026",
-    title: "Cute and well made",
-    body: "Really cute sash, well made and personalised beautifully. Delivery was prompt and packaging is lovely. Would give 5 stars but the year text was slightly smaller than I expected. Overall very happy with the purchase!",
-    helpful: 7,
-    verified: false,
-  },
-];
+const PAGE_SIZE = 30;
 
-const ratingBreakdown = [
-  { stars: 5, count: 7, pct: 78 },
-  { stars: 4, count: 1, pct: 11 },
-  { stars: 3, count: 1, pct: 11 },
-  { stars: 2, count: 0, pct: 0 },
-  { stars: 1, count: 0, pct: 0 },
-];
+const EMPTY_BREAKDOWN: ReviewRatingBreakdownEntry[] = [5, 4, 3, 2, 1].map(
+  (stars) => ({ stars, count: 0, pct: 0 }),
+);
 
-export default function ReviewsSection() {
-  const [helpfulMap, setHelpfulMap] = useState<Record<number, boolean>>({});
+function initialsFromName(name: string | null): string {
+  if (!name) return "??";
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function formatReviewDate(value: string | null, fallback: string): string {
+  const iso = value || fallback;
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+export default function ReviewsSection({ productId }: ReviewsSectionProps) {
+  const [data, setData] = useState<ProductReviewsResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [helpfulMap, setHelpfulMap] = useState<Record<string, number>>({});
+  const [helpfulPending, setHelpfulPending] = useState<Set<string>>(new Set());
+  const [sort, setSort] = useState<ReviewSort>("newest");
 
-  const toggleHelpful = (id: number) =>
-    setHelpfulMap((m) => ({ ...m, [id]: !m[id] }));
+  // Keep data visible while re-fetching after the first load — only the initial
+  // `loading: true` state shows the spinner. This sidesteps cascading state
+  // updates inside the effect and matches the rest of the codebase's pattern.
+  useEffect(() => {
+    let cancelled = false;
+    getProductReviews(productId, { page: 1, limit: PAGE_SIZE, sort })
+      .then((res) => {
+        if (cancelled) return;
+        setData(res);
+        setError(null);
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setError(err instanceof Error ? err.message : "Failed to load reviews");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [productId, sort]);
 
-  const displayed = showAll ? reviews : reviews.slice(0, 3);
+  const onReviewCreated = useCallback(
+    (review: ProductReview) => {
+      setShowForm(false);
+      setData((prev) => {
+        if (!prev) return prev;
+        const items = [review, ...prev.items];
+        const total = prev.total + 1;
+        // Recompute breakdown locally so the summary updates without a refetch.
+        const counts = new Map<number, number>();
+        for (const entry of prev.breakdown) {
+          counts.set(entry.stars, entry.count);
+        }
+        counts.set(review.rating, (counts.get(review.rating) ?? 0) + 1);
+        const totalCount = total;
+        const breakdown: ReviewRatingBreakdownEntry[] = [5, 4, 3, 2, 1].map(
+          (stars) => {
+            const count = counts.get(stars) ?? 0;
+            const pct =
+              totalCount === 0 ? 0 : Math.round((count / totalCount) * 100);
+            return { stars, count, pct };
+          },
+        );
+        const weighted = breakdown.reduce(
+          (acc, b) => acc + b.stars * b.count,
+          0,
+        );
+        const averageRating =
+          totalCount === 0 ? 0 : Math.round((weighted / totalCount) * 10) / 10;
+        return {
+          ...prev,
+          items,
+          total,
+          breakdown,
+          averageRating,
+        };
+      });
+    },
+    [],
+  );
+
+  const onMarkHelpful = useCallback(
+    async (review: ProductReview) => {
+      if (helpfulMap[review.reviewId]) return;
+      if (helpfulPending.has(review.reviewId)) return;
+      setHelpfulPending((prev) => {
+        const next = new Set(prev);
+        next.add(review.reviewId);
+        return next;
+      });
+      try {
+        const res = await markReviewHelpful(review.reviewId);
+        setHelpfulMap((m) => ({ ...m, [review.reviewId]: res.helpfulCount }));
+      } catch {
+        // Swallow — UI stays in its previous state.
+      } finally {
+        setHelpfulPending((prev) => {
+          const next = new Set(prev);
+          next.delete(review.reviewId);
+          return next;
+        });
+      }
+    },
+    [helpfulMap, helpfulPending],
+  );
+
+  const items = useMemo(() => data?.items ?? [], [data]);
+  const total = data?.total ?? 0;
+  const averageRating = data?.averageRating ?? 0;
+  const breakdown = data?.breakdown ?? EMPTY_BREAKDOWN;
+
+  const displayed = useMemo(
+    () => (showAll ? items : items.slice(0, 3)),
+    [items, showAll],
+  );
 
   return (
     <section>
       <div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-8">
-          Customer Reviews
-        </h2>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">
+            Customer Reviews
+          </h2>
+          <button
+            onClick={() => setShowForm((s) => !s)}
+            className="hidden sm:inline-flex items-center gap-1.5 text-sm font-semibold text-[#ff6b6b] hover:text-[#ee5253]"
+          >
+            <Pencil className="w-4 h-4" />
+            {showForm ? "Cancel" : "Write a review"}
+          </button>
+        </div>
 
         {/* Summary */}
-        <div className="flex flex-col sm:flex-row gap-8 mb-10">
+        <div className="flex flex-col sm:flex-row gap-8 mb-6">
           <div className="flex flex-col items-center justify-center bg-[#fff0f0] rounded-2xl p-6 min-w-[140px]">
-            <span className="text-5xl font-bold text-gray-900">4.8</span>
-            <StarRating rating={4.8} size="md" />
-            <span className="text-sm text-gray-500 mt-2">9 reviews</span>
+            <span className="text-5xl font-bold text-gray-900">
+              {total === 0 ? "—" : averageRating.toFixed(1)}
+            </span>
+            <StarRating rating={averageRating} size="md" />
+            <span className="text-sm text-gray-500 mt-2">
+              {total} {total === 1 ? "review" : "reviews"}
+            </span>
           </div>
 
           <div className="flex-1 flex flex-col gap-2 justify-center">
-            {ratingBreakdown.map(({ stars, count, pct }) => (
+            {breakdown.map(({ stars, count, pct }) => (
               <div key={stars} className="flex items-center gap-3">
                 <span className="text-xs text-gray-500 w-10 text-right">
                   {stars} ★
@@ -136,64 +195,153 @@ export default function ReviewsSection() {
           </div>
         </div>
 
-        {/* Review list */}
-        <div className="flex flex-col gap-6">
-          {displayed.map((review) => (
-            <div
-              key={review.id}
-              className="bg-white border border-gray-100 rounded-2xl p-5 hover:shadow-sm transition-shadow"
+        {/* Sort + Write-a-review (mobile) */}
+        <div className="flex items-center justify-between gap-3 mb-5">
+          <label className="flex items-center gap-2 text-xs text-gray-500">
+            Sort by
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value as ReviewSort)}
+              className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-700 bg-white focus:outline-none focus:border-[#ff6b6b]"
             >
-              <div className="flex items-start gap-3 mb-3">
-                <div className="w-10 h-10 rounded-full bg-[#ff6b6b] flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                  {review.avatar}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold text-sm text-gray-800">
-                      {review.author}
-                    </span>
-                    {review.verified && (
-                      <span className="text-xs text-[#ff6b6b] bg-[#fff0f0] px-2 py-0.5 rounded-full font-medium">
-                        ✓ Verified Purchase
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <StarRating rating={review.rating} />
-                    <span className="text-xs text-gray-400">{review.date}</span>
-                  </div>
-                </div>
-              </div>
-
-              <p className="font-semibold text-sm text-gray-900 mb-1.5">
-                {review.title}
-              </p>
-              <p className="text-sm text-gray-600 leading-relaxed">
-                {review.body}
-              </p>
-
-              <button
-                onClick={() => toggleHelpful(review.id)}
-                className={`mt-3 flex items-center gap-1.5 text-xs transition-colors ${
-                  helpfulMap[review.id]
-                    ? "text-[#ff6b6b]"
-                    : "text-gray-400 hover:text-gray-600"
-                }`}
-              >
-                <ThumbsUp className="w-3.5 h-3.5" />
-                Helpful (
-                {review.helpful + (helpfulMap[review.id] ? 1 : 0)})
-              </button>
-            </div>
-          ))}
+              <option value="newest">Newest</option>
+              <option value="oldest">Oldest</option>
+              <option value="highest">Highest rated</option>
+              <option value="lowest">Lowest rated</option>
+              <option value="helpful">Most helpful</option>
+            </select>
+          </label>
+          <button
+            onClick={() => setShowForm((s) => !s)}
+            className="sm:hidden inline-flex items-center gap-1.5 text-sm font-semibold text-[#ff6b6b]"
+          >
+            <Pencil className="w-4 h-4" />
+            {showForm ? "Cancel" : "Write a review"}
+          </button>
         </div>
 
-        {reviews.length > 3 && (
+        {showForm && (
+          <div className="mb-8">
+            <ReviewForm
+              productId={productId}
+              onCreated={onReviewCreated}
+              onCancel={() => setShowForm(false)}
+            />
+          </div>
+        )}
+
+        {/* List */}
+        {loading && !data ? (
+          <div className="flex items-center justify-center py-10 text-gray-400">
+            <Loader2 className="w-5 h-5 animate-spin mr-2" />
+            Loading reviews…
+          </div>
+        ) : error ? (
+          <div className="text-sm text-red-600 bg-red-50 px-4 py-3 rounded-xl">
+            {error}
+          </div>
+        ) : items.length === 0 ? (
+          <div className="text-center py-10 text-gray-400 bg-gray-50 rounded-2xl">
+            No reviews yet. Be the first to share your experience!
+          </div>
+        ) : (
+          <div className="flex flex-col gap-6">
+            {displayed.map((review) => {
+              const liked = !!helpfulMap[review.reviewId];
+              const liveCount = helpfulMap[review.reviewId] ?? review.helpfulCount;
+              return (
+                <article
+                  key={review.reviewId}
+                  className="bg-white border border-gray-100 rounded-2xl p-5 hover:shadow-sm transition-shadow"
+                >
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-full bg-[#ff6b6b] flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                      {initialsFromName(review.author)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold text-sm text-gray-800">
+                          {review.author ?? "Anonymous"}
+                        </span>
+                        {review.verifiedBuyer && (
+                          <span className="text-xs text-[#ff6b6b] bg-[#fff0f0] px-2 py-0.5 rounded-full font-medium">
+                            ✓ Verified Purchase
+                          </span>
+                        )}
+                        {review.source === "customer" && (
+                          <span className="text-xs text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-medium">
+                            Store review
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <StarRating rating={review.rating} />
+                        <span className="text-xs text-gray-400">
+                          {formatReviewDate(review.reviewedAt, review.createdAt)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {review.title && (
+                    <p className="font-semibold text-sm text-gray-900 mb-1.5">
+                      {review.title}
+                    </p>
+                  )}
+                  {review.body && (
+                    <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">
+                      {review.body}
+                    </p>
+                  )}
+
+                  {review.pictures && review.pictures.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {review.pictures.map((src) => (
+                        <a
+                          key={src}
+                          href={src}
+                          target="_blank"
+                          rel="noreferrer noopener"
+                          className="block w-20 h-20 rounded-lg overflow-hidden bg-gray-100 border border-gray-100 hover:border-[#ff6b6b]"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={src}
+                            alt="Customer review"
+                            loading="lazy"
+                            className="w-full h-full object-cover"
+                          />
+                        </a>
+                      ))}
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => onMarkHelpful(review)}
+                    disabled={liked || helpfulPending.has(review.reviewId)}
+                    className={`mt-3 flex items-center gap-1.5 text-xs transition-colors ${
+                      liked
+                        ? "text-[#ff6b6b]"
+                        : "text-gray-400 hover:text-gray-600"
+                    } disabled:cursor-default`}
+                  >
+                    <ThumbsUp className="w-3.5 h-3.5" />
+                    Helpful ({liveCount})
+                  </button>
+                </article>
+              );
+            })}
+          </div>
+        )}
+
+        {items.length > 3 && (
           <button
             onClick={() => setShowAll(!showAll)}
             className="mt-6 w-full flex items-center justify-center gap-2 py-3 border border-gray-200 rounded-2xl text-sm font-medium text-gray-600 hover:border-[#ff6b6b] hover:text-[#ff6b6b] transition-all"
           >
-            {showAll ? "Show fewer reviews" : `Show all ${reviews.length} reviews`}
+            {showAll
+              ? "Show fewer reviews"
+              : `Show all ${items.length} reviews`}
             <ChevronDown
               className={`w-4 h-4 transition-transform ${showAll ? "rotate-180" : ""}`}
             />
