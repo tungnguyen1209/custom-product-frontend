@@ -161,6 +161,8 @@ function CollectionProductCard({ product }: { product: ProductListItem }) {
   // fallback below is just a safety net.
   const href = product.url || `/product-p${product.id}`;
   const fallbackImage = "https://placehold.co/480x480?text=No+Image";
+  const isDiscounted =
+    product.displayComparePrice != null && product.comparePrice != null;
 
   return (
     <Link
@@ -175,6 +177,11 @@ function CollectionProductCard({ product }: { product: ProductListItem }) {
           className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-110"
           loading="lazy"
         />
+        {isDiscounted && product.discountPercent != null && product.discountPercent > 0 && (
+          <span className="absolute top-2 left-2 rounded-full bg-[#ff6b6b] px-2 py-0.5 text-[11px] font-bold text-white shadow-sm">
+            -{product.discountPercent}%
+          </span>
+        )}
       </div>
 
       <div className="p-3.5 flex flex-col gap-1.5 flex-1">
@@ -185,6 +192,11 @@ function CollectionProductCard({ product }: { product: ProductListItem }) {
           <span className="text-base font-bold text-gray-900">
             {product.displayPrice}
           </span>
+          {isDiscounted && (
+            <span className="text-sm text-gray-400 line-through">
+              {product.displayComparePrice}
+            </span>
+          )}
         </div>
       </div>
     </Link>

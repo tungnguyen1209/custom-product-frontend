@@ -1,4 +1,10 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useState } from "react";
 import { Globe, Link2, X, Music2, Gift } from "lucide-react";
+import { PublicPostSummary } from "@/lib/posts-public";
+import { API_BASE_URL } from "@/lib/api";
 
 const links = {
   "Customer Care": ["Help Center", "Shipping Info", "Returns & Exchanges", "Track Order", "Contact Us"],
@@ -9,10 +15,33 @@ const links = {
 const paymentIcons = ["💳", "🔒", "✅"];
 
 export default function Footer() {
+  // Fetched client-side so the component stays compatible with every parent
+  // (some pages are `"use client"` and can't render an async Server Component).
+  // The endpoint is public — no auth header needed.
+  const [posts, setPosts] = useState<PublicPostSummary[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`${API_BASE_URL}/posts?limit=5`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled || !data?.items) return;
+        setPosts(data.items as PublicPostSummary[]);
+      })
+      .catch(() => {
+        // Footer renders fine without posts — silent fallback.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <footer className="bg-[#2d3436] text-gray-300 pt-16 pb-8 mt-auto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-12 mb-12">
+        <div
+          className={`grid grid-cols-2 ${posts.length > 0 ? "md:grid-cols-6" : "md:grid-cols-5"} gap-12 mb-12`}
+        >
           {/* Brand column */}
           <div className="col-span-2 md:col-span-2">
             <div className="flex items-center gap-2 mb-6">
@@ -59,6 +88,28 @@ export default function Footer() {
               </ul>
             </div>
           ))}
+
+          {/* Latest posts — column is omitted entirely when there's nothing
+              published, so the layout collapses back to its 5-col shape. */}
+          {posts.length > 0 && (
+            <div>
+              <h4 className="text-sm font-bold text-white mb-6 uppercase tracking-wider">
+                Latest Posts
+              </h4>
+              <ul className="space-y-3.5">
+                {posts.map((post) => (
+                  <li key={post.id}>
+                    <Link
+                      href={`/blog/${post.slug}`}
+                      className="text-[13px] text-gray-400 hover:text-[#ff6b6b] transition-colors line-clamp-2"
+                    >
+                      {post.title}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
 
         {/* Bottom row */}

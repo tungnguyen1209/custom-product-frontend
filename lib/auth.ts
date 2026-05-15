@@ -1,6 +1,7 @@
 import { API_BASE_URL, apiRequest, setAuthToken } from './api';
 
 export type AuthProvider = 'local' | 'google' | 'facebook';
+export type UserRole = 'user' | 'admin';
 
 export interface AuthUser {
   id: number;
@@ -11,6 +12,8 @@ export interface AuthUser {
   phone: string | null;
   provider: AuthProvider;
   providerId: string | null;
+  /** `'user'` (default) or `'admin'`. Admin-only routes gate on this. */
+  role: UserRole;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;

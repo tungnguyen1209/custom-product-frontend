@@ -163,7 +163,12 @@ export default function Header() {
 
   return (
     <header
-      className={`sticky top-0 z-40 bg-white transition-shadow ${
+      // z-50 keeps the header (and its dropdown menus, which expand DOWN past
+      // the header band) above other page-level sticky elements. The product
+      // page's sticky gallery sits at z-40; same-z gave it a paint-order win
+      // because it appears later in the DOM, and the dropdown menus hid
+      // behind the thumbnails.
+      className={`sticky top-0 z-50 bg-white transition-shadow ${
         scrolled ? "shadow-md shadow-black/5" : "shadow-sm"
       }`}
     >

@@ -38,12 +38,28 @@ interface ProductDescriptionProps {
   description?: string | null;
 }
 
+/**
+ * Crawled Shopify product descriptions arrive as HTML (with `<style>`,
+ * `<video>`, paragraphs, etc.); legacy plain-text descriptions remain too.
+ * The leading-tag check tells them apart so we can render rich HTML faithfully
+ * without breaking older rows that stored only text.
+ */
+const HTML_LIKELY_RE = /<[a-z][\s\S]*?>/i;
+
 export default function ProductDescription({ description }: ProductDescriptionProps = {}) {
+  const hasHtml = !!description && HTML_LIKELY_RE.test(description);
   return (
     <div className="border border-gray-100 rounded-2xl px-5 py-1">
       <AccordionItem title="Product Description" defaultOpen>
         {description ? (
-          <p className="mb-3 whitespace-pre-line">{description}</p>
+          hasHtml ? (
+            <div
+              className="product-description-html mb-3 text-sm leading-relaxed [&_p]:my-2 [&_ul]:my-2 [&_ol]:my-2 [&_li]:list-disc [&_li]:ml-5 [&_ol_li]:list-decimal [&_strong]:font-semibold [&_a]:text-[#ff6b6b] [&_a]:underline [&_img]:my-2 [&_img]:max-w-full [&_img]:rounded [&_video]:my-2 [&_video]:max-w-full [&_video]:rounded"
+              dangerouslySetInnerHTML={{ __html: description }}
+            />
+          ) : (
+            <p className="mb-3 whitespace-pre-line">{description}</p>
+          )
         ) : (
           <>
             <p className="mb-3">

@@ -1695,34 +1695,105 @@ export default function CustomizationForm({
         serviceRef.current = svc;
         await svc.fetchImageUrlsFirstTime();
 
-        // Pre-fill the first value ONLY for variation dropdowns (the ones
-        // rendered as radio pills). Non-variation dropdowns keep the original
-        // "— Select X —" placeholder behaviour so the user picks explicitly.
-        // We mutate `currentValue` directly and skip calling `selectOptionValue`
-        // per option — re-entering the service per option during init triggers
-        // extra element rebuilds that can leave duplicate state.
-        const initVariationIds = new Set<number>(
-          customization?.variationOptionIds ?? [],
-        );
+        // Pre-fill variation dropdowns. If the URL carries `?variant=<id>`,
+        // pre-select the values that compose that variant (e.g. landing on a
+        // shared "Unisex / WITH POCKET / XL" link drops the user straight
+        // onto that combo with its price). Otherwise fall back to the first
+        // value per slot — same behaviour as before so non-shareable visits
+        // still see a usable initial state.
+        //
+        // We mutate `currentValue` directly and skip calling
+        // `selectOptionValue` per option — re-entering the service per option
+        // during init triggers extra element rebuilds that can leave
+        // duplicate state.
+        const initVariationIds: number[] =
+          customization?.variationOptionIds ?? [];
         const initOpts = svc.getOptions() as unknown as IOption[];
-        for (const opt of initOpts) {
+
+        // Parse `?variant=<id>` into per-slot value names from the matching
+        // variant's publicTitle (Shopify uses " / " as the joiner).
+        const urlVariantId =
+          typeof window !== "undefined"
+            ? new URLSearchParams(window.location.search).get("variant")
+            : null;
+        let variantSlotNames: string[] | null = null;
+        if (urlVariantId) {
+          const v = (customization?.variants ?? []).find(
+            (x) => String(x.variantId) === urlVariantId,
+          );
+          if (v?.publicTitle) {
+            variantSlotNames = v.publicTitle
+              .split(" / ")
+              .map((s) => s.trim());
+          }
+        }
+
+        // Slot → option index. Walk left-to-right matching each
+        // `variationOptionIds[k]` to the first not-yet-claimed option with
+        // that id (same logic as `variationSlots` lower down — repeated here
+        // because that useMemo hasn't run yet at init time).
+        const optIdxBySlot: number[] = new Array(initVariationIds.length).fill(
+          -1,
+        );
+        {
+          let cursor = 0;
+          for (
+            let i = 0;
+            i < initOpts.length && cursor < initVariationIds.length;
+            i++
+          ) {
+            if (initOpts[i].id === initVariationIds[cursor]) {
+              optIdxBySlot[cursor] = i;
+              cursor++;
+            }
+          }
+        }
+
+        // Lenient comparison so `Medium` vs `medium` vs `MEDIUM ` match.
+        const normalize = (s: unknown): string =>
+          String(s ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
+
+        for (let slot = 0; slot < initVariationIds.length; slot++) {
+          const optIdx = optIdxBySlot[slot];
+          if (optIdx < 0) continue;
+          const opt = initOpts[optIdx];
           if (opt.type !== "dropdown") continue;
-          if (!initVariationIds.has(opt.id)) continue;
-          if (isOptionFilled(opt)) continue;
-          const first = opt.dropdownValues?.[0];
-          if (!first) continue;
+
+          let target = opt.dropdownValues?.[0];
+          let fromVariant = false;
+
+          // Prefer the variant-derived value when the URL gave us one. Falls
+          // back to the first dropdown value when the variant's name for
+          // this slot can't be matched (e.g. older publicTitle with a typo).
+          if (variantSlotNames && variantSlotNames[slot]) {
+            const key = normalize(variantSlotNames[slot]);
+            const match = opt.dropdownValues?.find(
+              (v) => normalize(v.valueName) === key,
+            );
+            if (match) {
+              target = match;
+              fromVariant = true;
+            }
+          }
+
+          if (!target) continue;
+          // Variant overrides any default-template pre-fill (the customer
+          // explicitly asked for this combo via the URL). The fallback path
+          // (no variant URL, or unmatched name) still respects an already-
+          // filled value so we don't trample a template default.
+          if (!fromVariant && isOptionFilled(opt)) continue;
           // Same defence as `handleSelectValue` — when ids are shared, the
           // `valueName` is the only field that uniquely identifies a value.
           const idShared =
-            first.id !== undefined &&
+            target.id !== undefined &&
             (opt.dropdownValues ?? []).some(
-              (v) => v !== first && v.id === first.id,
+              (v) => v !== target && v.id === target.id,
             );
           opt.currentValue = idShared
-            ? first.valueName
-            : typeof first.id !== "undefined"
-              ? first.id
-              : first.valueName;
+            ? target.valueName
+            : typeof target.id !== "undefined"
+              ? target.id
+              : target.valueName;
         }
 
         if (!cancelled) {
@@ -1745,11 +1816,17 @@ export default function CustomizationForm({
     return () => { cancelled = true; };
   }, [customization, customizationError]);
 
-  /* Sync options state after any mutation */
-  const syncOptions = useCallback(() => {
+  /* Sync options state after any mutation. `revealCanvas` controls whether
+   * this interaction should flip the gallery from static images to the live
+   * personalization canvas. Variant changes (size/style/colour pills) pass
+   * `false` — picking a shirt size shouldn't drag the user's eye to a
+   * preview they haven't asked for yet. Touching a real personalization
+   * option (text, image, design colour) passes `true` and the canvas
+   * reveals itself. */
+  const syncOptions = useCallback((revealCanvas = true) => {
     if (serviceRef.current) {
       setOptions([...serviceRef.current.getOptions()]);
-      broadcastTemplate(serviceRef.current, true);
+      broadcastTemplate(serviceRef.current, revealCanvas);
     }
   }, []);
 
@@ -1805,18 +1882,24 @@ export default function CustomizationForm({
           : val.valueName;
       const key = `${option.id}:${valueId}`;
 
+      // Variant options (size/style/colour pills wired to Shopify variants)
+      // shouldn't unmask the personalization canvas — only real design edits
+      // should. We pass `revealCanvas=false` for the variant path so the
+      // gallery stays on the static images until the user touches a real
+      // customization control.
+      const isVariantSelection = variationOptionIds.includes(targetOption.id);
       targetOption.currentValue = valueId;
-      syncOptions();
+      syncOptions(!isVariantSelection);
       setProcessingKey(key);
       try {
         await serviceRef.current?.selectOptionValue(targetOption, val);
       } catch {
         // ignore service errors — UI already shows the new value
       }
-      syncOptions();
+      syncOptions(!isVariantSelection);
       setProcessingKey(null);
     },
-    [syncOptions, options],
+    [syncOptions, options, variationOptionIds],
   );
 
   /* Handle text input change (debounced) */
@@ -1899,6 +1982,17 @@ export default function CustomizationForm({
     );
   }
 
+  // Progress over REQUIRED options only — non-required options aren't
+  // milestones the customer has to clear, so counting them would dilute
+  // the signal. Variant pills (size/style/colour) ARE required and stay
+  // in the denominator because not picking one blocks add-to-cart.
+  const requiredVisibleOptions = visibleOptions.filter((o) => o.required);
+  const requiredFilledCount = requiredVisibleOptions.filter(isOptionFilled).length;
+  const requiredTotal = requiredVisibleOptions.length;
+  const progressPct =
+    requiredTotal === 0 ? 100 : Math.round((requiredFilledCount / requiredTotal) * 100);
+  const allDone = requiredTotal > 0 && requiredFilledCount === requiredTotal;
+
   return (
     <div className="flex flex-col gap-6">
       {/* Gift box badge */}
@@ -1908,6 +2002,32 @@ export default function CustomizationForm({
           Free premium gift box included with every order
         </p>
       </div>
+
+      {/* Personalization progress */}
+      {requiredTotal > 0 && (
+        <div className="rounded-2xl border border-gray-100 bg-white px-5 py-3.5 shadow-sm">
+          <div className="flex items-center justify-between text-xs font-bold">
+            <span className="text-gray-700">
+              {allDone ? "All set!" : "Personalization progress"}
+            </span>
+            <span
+              className={
+                allDone ? "text-emerald-600" : "text-gray-600"
+              }
+            >
+              {requiredFilledCount} / {requiredTotal} completed
+            </span>
+          </div>
+          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+            <div
+              className={`h-full transition-all duration-300 ${
+                allDone ? "bg-emerald-500" : "bg-[#ff6b6b]"
+              }`}
+              style={{ width: `${progressPct}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Dynamic options */}
       <div className="flex flex-col gap-6">

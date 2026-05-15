@@ -17,6 +17,7 @@ import StarRating from "@/components/StarRating";
 import {
   getProduct,
   getProductReviews,
+  getProductVariant,
   type ProductBasicInfo,
   type ProductReviewsResponse,
 } from "@/lib/api";
@@ -24,6 +25,7 @@ import ProductGallerySection from "./ProductGallerySection";
 
 interface Props {
   params: Promise<{ productSlug: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
 const SITE_NAME = "Gifthub";
@@ -167,10 +169,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function ProductPage({ params }: Props) {
+export default async function ProductPage({ params, searchParams }: Props) {
   const { productSlug } = await params;
   const parsed = parseProductSlug(productSlug);
   if (!parsed) notFound();
+
+  // Read `?variant=<id>` so we can SSR the variant's price directly instead
+  // of rendering `basePrice` and letting CustomizationForm flip it after
+  // hydration (which produces a visible price "jump" on shared links).
+  const sp = await searchParams;
+  const variantParam = typeof sp.variant === "string" ? sp.variant : null;
 
   const [product, reviewSummary] = await Promise.all([
     safeGetProduct(parsed.id),
@@ -200,9 +208,27 @@ export default async function ProductPage({ params }: Props) {
   const cleanDescription = product.description
     ? stripHtml(product.description)
     : "";
-  const safeBasePrice = Number.isFinite(basePrice) ? basePrice : 0;
-  const safeComparePrice =
+  const productBasePrice = Number.isFinite(basePrice) ? basePrice : 0;
+  const productCompare =
     comparePrice != null && Number.isFinite(comparePrice) ? comparePrice : null;
+
+  // Resolve the initial display price. When the URL pins a variant, fetch
+  // its price server-side and use that — so the first paint is correct and
+  // CustomizationForm's later `wm-price-update` is a no-op rather than a
+  // user-visible flip. Falls back to the product's base values when the
+  // variant isn't stored or the lookup fails.
+  const variantPreview = variantParam
+    ? await getProductVariant(Number(parsed.id), variantParam)
+    : null;
+  const safeBasePrice =
+    variantPreview?.price != null && Number.isFinite(variantPreview.price)
+      ? variantPreview.price
+      : productBasePrice;
+  const safeComparePrice =
+    variantPreview?.comparePrice != null &&
+    Number.isFinite(variantPreview.comparePrice)
+      ? variantPreview.comparePrice
+      : productCompare;
   const hasDiscount =
     safeComparePrice != null && safeComparePrice > safeBasePrice;
 

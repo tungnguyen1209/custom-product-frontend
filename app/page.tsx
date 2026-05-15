@@ -142,14 +142,23 @@ function mapProductForCard(p: ProductListItem): ProductCardData {
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");
   const price = Number.isFinite(p.price) ? p.price : 0;
+  // Wire comparePrice through: when discounted, the strikethrough value is
+  // the original `comparePrice` and the live price stays as `price`. When
+  // there's no discount, both values collapse to `price` and ProductCard's
+  // `hasDiscount = discountPercent > 0` check hides the strikethrough/badge.
+  const compare =
+    p.comparePrice != null && Number.isFinite(p.comparePrice)
+      ? p.comparePrice
+      : null;
+  const discountPercent = p.discountPercent ?? 0;
   return {
     id: p.id,
     slug: slug || "product",
     name: p.name || `Product ${p.id}`,
     category: "Personalised Gift",
-    originalPrice: price,
+    originalPrice: compare ?? price,
     discountPrice: price,
-    discountPercent: 0,
+    discountPercent,
     rating: 4.8,
     reviewCount: 0,
     image: p.imageUrl ?? "",

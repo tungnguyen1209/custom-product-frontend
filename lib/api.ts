@@ -137,6 +137,11 @@ export interface ProductListItem {
   imageUrl: string | null;
   price: number;
   displayPrice: string;
+  /** Strikethrough "was" price; `null` when the product isn't discounted. */
+  comparePrice: number | null;
+  displayComparePrice: string | null;
+  /** Whole-number percent off; `null` when not discounted. */
+  discountPercent: number | null;
   url: string;
 }
 
@@ -251,6 +256,38 @@ export async function getProduct(
     name: product.name ? decodeHtmlEntities(product.name) : product.name,
     description: product.description ? decodeHtmlEntities(product.description) : product.description,
   };
+}
+
+export interface ProductVariantPreview {
+  variantId: string;
+  price: number | null;
+  comparePrice: number | null;
+  publicTitle: string | null;
+  title: string | null;
+  available: boolean;
+}
+
+/**
+ * Server-safe lookup of a single variant by its Shopify ID. Returns `null`
+ * when the variant isn't stored (price crawler hasn't fetched it yet, or
+ * the URL has a stale `?variant=`) so callers can fall back to the product's
+ * base price without surfacing an error. `next.revalidate` keeps the lookup
+ * cheap — variant prices change at crawl cadence, not per-request.
+ */
+export async function getProductVariant(
+  productId: number,
+  variantId: string,
+): Promise<ProductVariantPreview | null> {
+  try {
+    const res = await fetch(
+      `${API_BASE_URL}/products/${productId}/variants/${encodeURIComponent(variantId)}`,
+      { next: { revalidate: 60 } },
+    );
+    if (!res.ok) return null;
+    return (await res.json()) as ProductVariantPreview;
+  } catch {
+    return null;
+  }
 }
 
 /**
