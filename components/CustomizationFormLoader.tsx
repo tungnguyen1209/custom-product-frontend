@@ -15,6 +15,8 @@ interface Props {
   basePrice?: number;
   customization?: ProductCustomizationData | null;
   customizationError?: boolean;
+  /** Sanitized HTML for the Size Guide popup. Pass `null` to hide the link. */
+  sizeChartHtml?: string | null;
 }
 
 export default function CustomizationFormLoader(props: Props) {

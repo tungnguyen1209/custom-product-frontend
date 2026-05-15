@@ -79,6 +79,8 @@ export interface ProductBasicInfo {
   gallery: string[] | null;
   slug: string | null;
   shop: string | null;
+  /** Sanitized inner HTML of the source page's `.size-chart-content` block. */
+  sizeChartHtml: string | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;

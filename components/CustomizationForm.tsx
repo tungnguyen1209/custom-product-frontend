@@ -6,7 +6,7 @@ import {
 import WM from "@megaads/wm";
 import {
   Minus, Plus, Gift, ShoppingCart, Zap, Heart, Share2,
-  CheckCircle, ImagePlus, Upload, X, Check, ChevronDown, Loader2, Eye,
+  CheckCircle, ImagePlus, Upload, X, Check, ChevronDown, Loader2, Eye, Ruler,
 } from "lucide-react";
 import Zoom from "react-medium-image-zoom";
 import "react-medium-image-zoom/dist/styles.css";
@@ -251,6 +251,11 @@ function isColorVariation(option: IOption): boolean {
   return label.includes("color") || label.includes("colour");
 }
 
+/** True when the option group is a Size selector. */
+function isSizeVariation(option: IOption): boolean {
+  return (option.label?.toLowerCase() ?? "").includes("size");
+}
+
 interface ResolvedColor {
   /** Canonical CSS color string (e.g. `#ff0000`) — falsy when the label
    *  doesn't resolve to a real CSS color. */
@@ -313,14 +318,19 @@ function VariationRadioOption({
   onSelect,
   loadingValueId,
   showError,
+  sizeChartHtml,
 }: {
   option: IOption;
   onSelect: (val: DropdownVal) => void;
   loadingValueId?: number | string | null;
   showError?: boolean;
+  sizeChartHtml?: string | null;
 }) {
   const errored = showError && option.required && !isOptionFilled(option);
   const isColor = isColorVariation(option);
+  const showSizeGuide =
+    !!sizeChartHtml && sizeChartHtml.trim().length > 0 && isSizeVariation(option);
+  const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
 
   // Stabilize the reference — `option.dropdownValues ?? []` produces a fresh
   // empty array on every render when the option has no values, which makes
@@ -377,15 +387,27 @@ function VariationRadioOption({
 
   return (
     <div className="flex flex-col gap-2.5">
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-bold text-gray-800">
-          {option.label}
-          {option.required && <span className="text-red-500 ml-0.5">*</span>}
-        </span>
-        {errored && (
-          <span className="text-xs text-red-500 font-semibold">
-            Please select an option
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-bold text-gray-800">
+            {option.label}
+            {option.required && <span className="text-red-500 ml-0.5">*</span>}
           </span>
+          {errored && (
+            <span className="text-xs text-red-500 font-semibold">
+              Please select an option
+            </span>
+          )}
+        </div>
+        {showSizeGuide && (
+          <button
+            type="button"
+            onClick={() => setSizeGuideOpen(true)}
+            className="inline-flex items-center gap-1 text-xs font-semibold text-[#ff6b6b] hover:text-[#ee5253] underline decoration-dotted underline-offset-4"
+          >
+            <Ruler className="w-3.5 h-3.5" />
+            Size guide
+          </button>
         )}
       </div>
       <div className="flex flex-wrap gap-2.5">
@@ -465,6 +487,148 @@ function VariationRadioOption({
             </button>
           );
         })}
+      </div>
+      {showSizeGuide && (
+        <SizeGuideModal
+          html={sizeChartHtml!}
+          open={sizeGuideOpen}
+          onClose={() => setSizeGuideOpen(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ─── Size guide modal ────────────────────────────────────────────────── */
+
+type SizeUnit = "inch" | "cm";
+
+/**
+ * The source markup ships its own toggle (`.ks-unit-toggle` button row plus
+ * `<div id="inches">` / `<div id="cm">` panels). Detecting whether each panel
+ * exists is enough to decide if we should render our own segmented control —
+ * the visual swap is driven by CSS scoped under `.size-guide-unit-*`.
+ */
+function detectUnitDivs(html: string): { hasInch: boolean; hasCm: boolean } {
+  if (!html) return { hasInch: false, hasCm: false };
+  // Match either the id (`inch`, `inches`) or a `.tabcontent.inches/.cm` class.
+  const hasInch =
+    /\bid\s*=\s*["']?inches?["'\s>]/i.test(html) ||
+    /class\s*=\s*["'][^"']*\btabcontent\b[^"']*\binches?\b/i.test(html);
+  const hasCm =
+    /\bid\s*=\s*["']?cm["'\s>]/i.test(html) ||
+    /class\s*=\s*["'][^"']*\btabcontent\b[^"']*\bcm\b/i.test(html);
+  return { hasInch, hasCm };
+}
+
+function SizeGuideModal({
+  html,
+  open,
+  onClose,
+}: {
+  html: string;
+  open: boolean;
+  onClose: () => void;
+}) {
+  const units = useMemo(() => detectUnitDivs(html), [html]);
+  const hasBothUnits = units.hasInch && units.hasCm;
+  // Default to inch when available, otherwise cm — picked once at mount
+  // via a lazy initializer so the user's later choice isn't clobbered.
+  const [unit, setUnit] = useState<SizeUnit>(() =>
+    units.hasInch ? "inch" : units.hasCm ? "cm" : "inch",
+  );
+
+  // Close on Escape; lock body scroll while open.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Size guide"
+      className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6"
+    >
+      <button
+        type="button"
+        aria-label="Close size guide"
+        onClick={onClose}
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
+      />
+      <div className="relative w-full max-w-3xl max-h-[85vh] bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
+          <div className="flex items-center gap-2.5">
+            <span className="w-9 h-9 rounded-xl bg-[#fff0f0] text-[#ff6b6b] flex items-center justify-center">
+              <Ruler className="w-5 h-5" />
+            </span>
+            <div>
+              <h3 className="text-base font-bold text-gray-900 leading-tight">
+                Size guide
+              </h3>
+              <p className="text-xs text-gray-500">
+                Measurements as listed by the maker
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-2 -mr-2 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+            aria-label="Close"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {hasBothUnits && (
+          <div className="px-6 pt-4 flex-shrink-0">
+            <div
+              role="tablist"
+              aria-label="Measurement unit"
+              className="inline-flex items-center gap-1 p-1 rounded-full bg-gray-100"
+            >
+              {(["inch", "cm"] as const).map((u) => {
+                const active = unit === u;
+                return (
+                  <button
+                    key={u}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => setUnit(u)}
+                    className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
+                      active
+                        ? "bg-white text-[#ff6b6b] shadow-sm"
+                        : "text-gray-500 hover:text-gray-800"
+                    }`}
+                  >
+                    {u === "inch" ? "Inches" : "Centimeters"}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <div className="overflow-y-auto px-6 py-5 flex-1">
+          <div
+            className={`size-chart-content size-guide-content size-guide-unit-${unit}`}
+            dangerouslySetInnerHTML={{ __html: html }}
+          />
+        </div>
       </div>
     </div>
   );
@@ -944,6 +1108,9 @@ interface CustomizationFormProps {
   basePrice?: number;
   customization?: ProductCustomizationData | null;
   customizationError?: boolean;
+  /** Sanitized HTML for the Size Guide popup. When provided, a "Size guide"
+   *  link is rendered next to any variation option whose label is Size. */
+  sizeChartHtml?: string | null;
 }
 
 export default function CustomizationForm({
@@ -952,6 +1119,7 @@ export default function CustomizationForm({
   basePrice = 0,
   customization: customizationProp,
   customizationError: customizationErrorProp,
+  sizeChartHtml = null,
 }: CustomizationFormProps) {
   const [internalCustomization, setInternalCustomization] =
     useState<ProductCustomizationData | null>(null);
@@ -1720,6 +1888,7 @@ export default function CustomizationForm({
                   onSelect={(val) => handleSelectValue(option, val)}
                   loadingValueId={loadingValueId}
                   showError={showRequiredErrors}
+                  sizeChartHtml={sizeChartHtml}
                 />
               );
             } else {

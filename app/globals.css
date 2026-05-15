@@ -52,3 +52,226 @@ input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
+
+/* ─── Size Guide popup content ───────────────────────────────────────── */
+/* Styles crawled HTML from the source site's `.size-chart-content` block.
+ * Scoped to `.size-guide-content` so the rules never leak elsewhere. */
+.size-guide-content {
+  font-size: 0.875rem;
+  line-height: 1.65;
+  color: #374151;
+}
+
+.size-guide-content > *:first-child {
+  margin-top: 0;
+}
+.size-guide-content > *:last-child {
+  margin-bottom: 0;
+}
+
+.size-guide-content h1,
+.size-guide-content h2,
+.size-guide-content h3,
+.size-guide-content h4 {
+  color: #111827;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 1.25rem 0 0.5rem;
+  line-height: 1.3;
+}
+.size-guide-content h1 { font-size: 1.25rem; }
+.size-guide-content h2 { font-size: 1.05rem; }
+.size-guide-content h3 { font-size: 0.95rem; }
+.size-guide-content h4 { font-size: 0.875rem; }
+
+.size-guide-content p {
+  margin: 0 0 0.75rem;
+}
+
+.size-guide-content strong,
+.size-guide-content b {
+  color: #111827;
+  font-weight: 700;
+}
+
+.size-guide-content em,
+.size-guide-content i {
+  color: #4b5563;
+}
+
+.size-guide-content a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgba(255, 107, 107, 0.4);
+  text-decoration-thickness: 1px;
+  transition: color 0.15s ease, text-decoration-color 0.15s ease;
+}
+.size-guide-content a:hover {
+  color: var(--primary-dark);
+  text-decoration-color: var(--primary-dark);
+}
+
+.size-guide-content ul,
+.size-guide-content ol {
+  margin: 0 0 0.9rem;
+  padding-left: 1.4rem;
+}
+.size-guide-content ul { list-style: disc; }
+.size-guide-content ol { list-style: decimal; }
+.size-guide-content li {
+  margin-bottom: 0.3rem;
+}
+.size-guide-content li::marker {
+  color: var(--primary);
+}
+
+.size-guide-content blockquote {
+  margin: 1rem 0;
+  padding: 0.9rem 1.1rem;
+  border-left: 3px solid var(--primary);
+  background: var(--primary-light);
+  border-radius: 0 0.75rem 0.75rem 0;
+  color: #4b5563;
+  font-style: italic;
+}
+
+.size-guide-content hr {
+  margin: 1.25rem 0;
+  border: 0;
+  border-top: 1px dashed #e5e7eb;
+}
+
+/* Tables — the workhorse of any real size chart. */
+.size-guide-content table {
+  width: 100%;
+  margin: 1rem 0 1.25rem;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.875rem;
+  overflow: hidden;
+  font-size: 0.8125rem;
+  /* Modern browsers honour rounded corners on overflow:hidden — older ones
+   * fall back to square corners, which is still readable. */
+  background: #ffffff;
+}
+.size-guide-content table caption {
+  caption-side: top;
+  text-align: left;
+  font-weight: 700;
+  color: #111827;
+  padding: 0 0 0.4rem;
+}
+.size-guide-content thead {
+  background: linear-gradient(180deg, #fff0f0 0%, #ffe6e6 100%);
+}
+.size-guide-content th {
+  text-align: left;
+  font-weight: 700;
+  color: #1f2937;
+  padding: 0.65rem 0.85rem;
+  border-bottom: 1px solid #f3d4d4;
+  white-space: nowrap;
+}
+.size-guide-content td {
+  padding: 0.6rem 0.85rem;
+  border-top: 1px solid #f1f5f9;
+  color: #374151;
+  vertical-align: middle;
+}
+.size-guide-content tr:hover td {
+  background: #fff9f5;
+}
+.size-guide-content tbody tr:nth-child(even) td {
+  background: #fafafa;
+}
+.size-guide-content tbody tr:nth-child(even):hover td {
+  background: #fff9f5;
+}
+.size-guide-content td:first-child,
+.size-guide-content th:first-child {
+  border-left: 0;
+}
+.size-guide-content td:last-child,
+.size-guide-content th:last-child {
+  border-right: 0;
+}
+
+/* Images — centred, never overflow, mild rounded corners. */
+.size-guide-content img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 1rem auto;
+  border-radius: 0.875rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.size-guide-content figure {
+  margin: 1rem 0;
+  text-align: center;
+}
+.size-guide-content figcaption {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 0.35rem;
+}
+
+/* `code`, `kbd` and `pre` — rarely in a size chart but cheap to support. */
+.size-guide-content code {
+  background: #f3f4f6;
+  border-radius: 0.35rem;
+  padding: 0.1rem 0.35rem;
+  font-size: 0.85em;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+/* Subtle custom scrollbar for the scrolling body. */
+.size-guide-content::-webkit-scrollbar {
+  width: 8px;
+}
+.size-guide-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+.size-guide-content::-webkit-scrollbar-thumb {
+  background: #e5e7eb;
+  border-radius: 999px;
+}
+.size-guide-content::-webkit-scrollbar-thumb:hover {
+  background: #d1d5db;
+}
+
+@media (max-width: 640px) {
+  .size-guide-content table {
+    font-size: 0.75rem;
+  }
+  .size-guide-content th,
+  .size-guide-content td {
+    padding: 0.5rem 0.6rem;
+  }
+}
+
+/* Unit-toggle visibility — source markup ships `<div id="inches">` and
+ * `<div id="cm">` panels (variants: id `inch`, class `.tabcontent.inches` /
+ * `.tabcontent.cm`) plus its own `.ks-unit-toggle` button row. We render our
+ * own toggle in the modal header, so hide the original one and swap panels
+ * via the wrapper class. */
+.size-guide-content .ks-unit-toggle,
+.size-guide-content .tab.ks-unit-toggle {
+  display: none;
+}
+
+/* Active = inches → hide cm panels */
+.size-guide-unit-inch [id="cm"],
+.size-guide-unit-inch .tabcontent.cm {
+  display: none;
+}
+
+/* Active = cm → hide inch panels */
+.size-guide-unit-cm [id="inch"],
+.size-guide-unit-cm [id="inches"],
+.size-guide-unit-cm .tabcontent.inches,
+.size-guide-unit-cm .tabcontent.inch {
+  display: none;
+}

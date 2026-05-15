@@ -402,6 +402,7 @@ export default async function ProductPage({ params }: Props) {
                   productId={parsed.id}
                   productName={productName}
                   basePrice={safeBasePrice}
+                  sizeChartHtml={product.sizeChartHtml ?? null}
                 />
               </DeferMount>
             </div>
