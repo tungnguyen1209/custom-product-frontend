@@ -14,6 +14,11 @@ interface RelatedProduct {
   imageUrl: string | null;
   price: number;
   displayPrice: string;
+  /** Strikethrough "was" price; `null` when the product isn't discounted. */
+  comparePrice: number | null;
+  displayComparePrice: string | null;
+  /** Whole-number percent off; `null` when not discounted. */
+  discountPercent: number | null;
   url: string;
 }
 
@@ -170,6 +175,11 @@ export default function RelatedProducts({ productId }: { productId: string | nul
                       🎁
                     </div>
                   )}
+                  {product.discountPercent != null && product.discountPercent > 0 && (
+                    <span className="absolute top-2 left-2 rounded-full bg-[#ff6b6b] px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
+                      -{product.discountPercent}%
+                    </span>
+                  )}
                   <button
                     onClick={(e) => e.preventDefault()}
                     className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
@@ -189,6 +199,11 @@ export default function RelatedProducts({ productId }: { productId: string | nul
                     <span className="font-bold text-gray-900 text-sm">
                       {product.displayPrice}
                     </span>
+                    {product.displayComparePrice && (
+                      <span className="text-xs text-gray-400 line-through">
+                        {product.displayComparePrice}
+                      </span>
+                    )}
                   </div>
                 </div>
               </a>

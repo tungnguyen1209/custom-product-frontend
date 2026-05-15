@@ -15,9 +15,19 @@ export default function ProductGallerySection({ gallery, alt }: Props) {
   };
 
   return (
+    // `sticky top-* z-*` removed from the inner wrapper — the page-level
+    // outer sticky wrapper (in `[productSlug]/page.tsx`) now pins the
+    // gallery and the personalization-progress bar together. Leaving an
+    // inner sticky here caused the gallery to outlive the outer wrapper's
+    // pin window: as the outer released at the row boundary, the inner
+    // kept sticking and (with its old z-40) painted over the progress
+    // bar siblings inside the same wrapper. `StickyPreviewWrapper`'s JS
+    // still works against `getBoundingClientRect` — it just reads the
+    // outer's pinned position now, which lines up with the 96/128
+    // thresholds it already uses for the mobile width-shrink effect.
     <StickyPreviewWrapper
       onClick={handleZoom}
-      className="sticky top-24 lg:top-32 z-40 bg-white lg:bg-transparent -mx-4 lg:mx-0 shadow-md lg:shadow-none cursor-pointer group"
+      className="bg-white lg:bg-transparent -mx-4 lg:mx-0 shadow-md lg:shadow-none cursor-pointer group"
     >
       <TemplatePreviewLoader gallery={gallery} alt={alt} />
 

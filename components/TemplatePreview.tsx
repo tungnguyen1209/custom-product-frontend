@@ -508,7 +508,14 @@ function elementFingerprint(el: TemplateElement): string {
     return `tc|${tc?.text}|${tc?.fill}|${tc?.fontSize}|${tc?.font}|${cfg.fontId}|${tc?.textAlign}|${tc?.outlineWidth}|${outline}|${tc?.tracking}|${tc?.horizontalDiameter}|${tc?.verticalDiameter}|${tc?.startAngle}|${tc?.endAngle}|${tc?.convex}|${cfg.centerX}|${cfg.centerY}|${cfg.rotation}|${flip}`;
   }
   if (el.type === "text_box" || el.type === "text") {
-    return `text|${cfg.textConfig?.text}|${cfg.textConfig?.fill}|${cfg.textConfig?.fontSize}|${cfg.textConfig?.font}|${cfg.fontId}|${cfg.textConfig?.multiline}|${cfg.centerX}|${cfg.centerY}|${cfg.sWidth}|${cfg.rotation}|${flip}`;
+    // Outline (stroke) fields belong in the fingerprint so changing the
+    // outline width / colour through a swatch option invalidates the
+    // cached fabric object and re-renders with the new border.
+    const outlineColorKey =
+      typeof cfg.textConfig?.outlineColor === "string"
+        ? cfg.textConfig.outlineColor
+        : JSON.stringify(cfg.textConfig?.outlineColor ?? null);
+    return `text|${cfg.textConfig?.text}|${cfg.textConfig?.fill}|${cfg.textConfig?.fontSize}|${cfg.textConfig?.font}|${cfg.fontId}|${cfg.textConfig?.multiline}|${cfg.centerX}|${cfg.centerY}|${cfg.sWidth}|${cfg.rotation}|${flip}|${cfg.textConfig?.outlineWidth}|${outlineColorKey}`;
   }
   const url = getImageUrl(el);
   if (el.source === "callie") {
@@ -706,10 +713,22 @@ export default function TemplatePreview() {
         // shift it ourselves and rotate the shift to match cfg.rotation.
         const textAlign = cfg.textConfig?.textAlign ?? "left";
         const rotation = cfg.rotation ?? 0;
+        // Outline: WM ships `outlineWidth` + `outlineColor` for text layers
+        // that need a contrasting border (e.g. cream fill on a light tee).
+        // Without this, the glyphs sit naked and can blend invisibly into
+        // the print area. `paintFirst: 'stroke'` lays the outline first so
+        // the fill draws over the inner half — same convention WM /
+        // Customily use in the editor preview.
+        const outlineWidth = (cfg.textConfig?.outlineWidth ?? 0) * scale;
+        const outlineColor = resolveOutlineColor(cfg.textConfig?.outlineColor);
+        const hasOutline = outlineWidth > 0 && !!outlineColor;
         const configs = {
           fontSize: (cfg.textConfig?.fontSize ?? 16) * scale,
           fontFamily: fontUrl || cfg.textConfig?.fontFamily || "sans-serif",
           fill: cfg.textConfig?.fill ?? "#000000",
+          stroke: hasOutline ? outlineColor : undefined,
+          strokeWidth: hasOutline ? outlineWidth : 0,
+          paintFirst: "stroke" as const,
           textAlign,
           angle: rotation,
           originX: "center" as const,

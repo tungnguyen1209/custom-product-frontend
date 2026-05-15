@@ -353,17 +353,57 @@ export default async function ProductPage({ params, searchParams }: Props) {
           </nav>
         </div>
 
-        {/* Product section */}
+        {/* Product section — 5-column grid on desktop so the gallery (3/5 ≈
+            60%) gets visual priority over the customization column (2/5 ≈
+            40%). Personalization options stay readable at 40% on the
+            narrowest lg breakpoint; the gallery, which carries the bulk of
+            the visual storytelling, gets the extra room. Mobile stacks
+            unchanged. */}
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 xl:gap-16 items-start">
-            {/* Left – Gallery (Sticky) */}
-            <ProductGallerySection
-              gallery={galleryImages}
-              alt={productName}
-            />
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-10 xl:gap-16 items-start">
+            {/* Left – Gallery (Sticky).
+                Two breakpoint regimes:
+                  • Mobile (`contents`): the wrapper effectively
+                    disappears so `<ProductGallerySection>` becomes a
+                    direct grid item. Sticky inside falls back to the
+                    grid container as its containing block — i.e.
+                    gallery + customization combined height — giving the
+                    sticky range it needs to pin while the page scrolls.
+                  • lg+ (`block lg:col-span-3 lg:self-stretch`): wrapper
+                    is the grid item, spans 3 of 5 cols (= 60%), and
+                    stretches to the row height (max of left/right) so
+                    sticky inside still has range while the customization
+                    column on the right is scrolled. */}
+            <div className="contents lg:block lg:col-span-3 lg:self-stretch">
+              {/* Gallery + personalization-progress bar share a single
+                  sticky wrapper so they pin as one unit. The progress
+                  bar's actual content is portaled in from
+                  `CustomizationForm` (which owns the option state); the
+                  empty `#personalization-progress-target` div is the
+                  portal landing zone. Offsets clear the page Header
+                  (promo + logo + nav strips ≈ 150-170px on lg+). */}
+              <div className="sticky top-24 lg:top-44 z-30 flex flex-col gap-1">
+                <ProductGallerySection
+                  gallery={galleryImages}
+                  alt={productName}
+                />
+                {/* Indent the bar so its left edge lines up with the
+                    main image's left edge (not the gallery container's,
+                    which starts at the thumbnail strip).
+                    `ProductGallery` uses `lg:w-20` (5rem) for the strip
+                    + `gap-3` (0.75rem) before the main image — total
+                    5.75rem. On mobile thumbnails are stacked above the
+                    main image, so no left offset is needed and the bar
+                    stays full-width. */}
+                <div
+                  id="personalization-progress-target"
+                  className="lg:pl-[5.75rem]"
+                />
+              </div>
+            </div>
 
-            {/* Right – Product info & Customization Form */}
-            <div className="flex flex-col gap-6">
+            {/* Right – Product info & Customization Form (40% on lg+) */}
+            <div className="flex flex-col gap-6 lg:col-span-2">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs font-semibold text-[#ff6b6b] bg-[#fff0f0] px-3 py-1 rounded-full">
                   💝 Meaningful Gifts
@@ -435,30 +475,39 @@ export default async function ProductPage({ params, searchParams }: Props) {
           </div>
         </section>
 
-        {/* Below-the-fold — mount only when scrolling near so they don't
-            block the main thread during the initial paint. */}
-        <DeferMount trigger="visible" rootMargin="400px">
-          <RelatedProducts productId={parsed.id} />
-        </DeferMount>
-
-        <DeferMount trigger="visible" rootMargin="400px">
-          <section
-            id="reviews"
-            className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12"
-          >
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 xl:gap-16 pt-4 border-t border-gray-100">
-              <div className="flex flex-col gap-12">
+        {/* Below-the-fold content uses the SAME 5-col grid so reviews +
+            related-products track under the gallery (col-span-3) and
+            shipping/description sit under the customization form
+            (col-span-2). The related-products carousel was previously a
+            full-width band — moving it into the left column keeps it
+            visually aligned with the gallery + reviews stack and stops
+            it from reading as an unrelated banner floating between the
+            buy area and the info area. */}
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-10 xl:gap-16 items-start pt-4 border-t border-gray-100">
+            <div
+              id="reviews"
+              className="lg:col-span-3 flex flex-col gap-12"
+            >
+              <DeferMount trigger="visible" rootMargin="400px">
                 <ReviewsSection productId={parsed.id} />
-              </div>
-              <div className="flex flex-col gap-12">
-                <ShippingInfo />
-                <ProductDescription
-                  description={product.description ?? null}
-                />
-              </div>
+              </DeferMount>
+              <DeferMount trigger="visible" rootMargin="400px">
+                <RelatedProducts productId={parsed.id} />
+              </DeferMount>
             </div>
-          </section>
-        </DeferMount>
+            <DeferMount
+              className="lg:col-span-2 flex flex-col gap-12"
+              trigger="visible"
+              rootMargin="400px"
+            >
+              <ShippingInfo />
+              <ProductDescription
+                description={product.description ?? null}
+              />
+            </DeferMount>
+          </div>
+        </section>
       </main>
 
       <Footer />

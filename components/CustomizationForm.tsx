@@ -3,6 +3,7 @@
 import {
   useEffect, useState, useRef, useCallback, useMemo, ChangeEvent,
 } from "react";
+import { createPortal } from "react-dom";
 import WM from "@megaads/wm";
 import {
   Minus, Plus, Gift, ShoppingCart, Zap, Heart, Share2,
@@ -1152,6 +1153,13 @@ export default function CustomizationForm({
   const [fetchError, setFetchError] = useState(false);
   const [errorDetail, setErrorDetail] = useState<string | null>(null);
   const [processingKey, setProcessingKey] = useState<string | null>(null);
+  // Portal landing zone for the personalization-progress bar — the bar is
+  // rendered into the left column (under the gallery, pinned with it) but
+  // its option state lives here. Set once after mount via getElementById.
+  const [progressTarget, setProgressTarget] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    setProgressTarget(document.getElementById("personalization-progress-target"));
+  }, []);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const serviceRef = useRef<any>(null);
 
@@ -2003,31 +2011,45 @@ export default function CustomizationForm({
         </p>
       </div>
 
-      {/* Personalization progress */}
-      {requiredTotal > 0 && (
-        <div className="rounded-2xl border border-gray-100 bg-white px-5 py-3.5 shadow-sm">
-          <div className="flex items-center justify-between text-xs font-bold">
-            <span className="text-gray-700">
-              {allDone ? "All set!" : "Personalization progress"}
-            </span>
-            <span
-              className={
-                allDone ? "text-emerald-600" : "text-gray-600"
-              }
-            >
-              {requiredFilledCount} / {requiredTotal} completed
-            </span>
-          </div>
-          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
-            <div
-              className={`h-full transition-all duration-300 ${
-                allDone ? "bg-emerald-500" : "bg-[#ff6b6b]"
-              }`}
-              style={{ width: `${progressPct}%` }}
-            />
-          </div>
-        </div>
-      )}
+      {/* Personalization progress — rendered via portal into the left
+          column (`#personalization-progress-target`) so it pins together
+          with the gallery as a single sticky unit. The own-sticky
+          positioning is dropped here; the outer wrapper around gallery +
+          target handles pinning. We still own the option state, so the
+          bar updates in lock-step with checkbox/text/swatch changes. */}
+      {requiredTotal > 0 && progressTarget &&
+        createPortal(
+          // Card aligned with the gallery:
+          //  - `rounded-2xl` matches the gallery's main-image radius so
+          //    the two stack like a pair of rounded cards.
+          //  - `-mx-4 lg:mx-0` mirrors the gallery's mobile bleed so the
+          //    strip's left/right edges line up with the gallery image.
+          //  - Full `border` (not just `border-t`) closes the rounded
+          //    shape evenly on all sides.
+          <div className="-mx-4 lg:mx-0 rounded-2xl border border-gray-100 bg-white px-5 py-3.5 shadow-sm">
+            <div className="flex items-center justify-between text-xs font-bold">
+              <span className="text-gray-700">
+                {allDone ? "All set!" : "Personalization progress"}
+              </span>
+              <span
+                className={
+                  allDone ? "text-emerald-600" : "text-gray-600"
+                }
+              >
+                {requiredFilledCount} / {requiredTotal} completed
+              </span>
+            </div>
+            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+              <div
+                className={`h-full transition-all duration-300 ${
+                  allDone ? "bg-emerald-500" : "bg-[#ff6b6b]"
+                }`}
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
+          </div>,
+          progressTarget,
+        )}
 
       {/* Dynamic options */}
       <div className="flex flex-col gap-6">
