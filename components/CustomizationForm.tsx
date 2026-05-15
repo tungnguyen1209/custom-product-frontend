@@ -1214,6 +1214,34 @@ export default function CustomizationForm({
     [customization],
   );
 
+  // Map variation slot ↔ position in `options`. We can't key by `opt.id`
+  // alone: the backend can emit duplicate IDs in `variationOptionIds` when
+  // Shopify ships more variant columns than Customily defines (product
+  // #455 has 3 Shopify columns Style/Option/Size but only 2 Customily
+  // variations, so slots 1 and 2 share the same Customily ID). Building
+  // `new Map<id, vIdx>` collapses duplicates; consuming `options`
+  // left-to-right matches `variationOptionIds[k]` to the first
+  // not-yet-claimed option with that ID and keeps each slot distinct.
+  const variationSlots = useMemo(() => {
+    const slotByOptIdx = new Map<number, number>();
+    const optIdxBySlot: number[] = new Array(variationOptionIds.length).fill(
+      -1,
+    );
+    let cursor = 0;
+    for (
+      let optIdx = 0;
+      optIdx < options.length && cursor < variationOptionIds.length;
+      optIdx++
+    ) {
+      if (options[optIdx].id === variationOptionIds[cursor]) {
+        slotByOptIdx.set(optIdx, cursor);
+        optIdxBySlot[cursor] = optIdx;
+        cursor++;
+      }
+    }
+    return { slotByOptIdx, optIdxBySlot };
+  }, [options, variationOptionIds]);
+
   // Rebuild each variation option's value list from the Shopify variants so
   // the radio pills always show every valid Style/Size/etc. combination, even
   // when Customily's `dropdownValues` is configured with fewer entries than
@@ -1233,11 +1261,9 @@ export default function CustomizationForm({
       k.split(" / ").map((p) => p.trim()),
     );
 
-    const variationMap = new Map<number, number>();
-    variationOptionIds.forEach((id, idx) => variationMap.set(id, idx));
-
-    const currentSelectionNames = variationOptionIds.map((optId) => {
-      const opt = options.find((o) => o.id === optId);
+    const currentSelectionNames = variationOptionIds.map((_optId, vIdx) => {
+      const optIdx = variationSlots.optIdxBySlot[vIdx];
+      const opt = optIdx >= 0 ? options[optIdx] : undefined;
       if (!opt || opt.currentValue == null || opt.currentValue === "") return null;
       const match =
         opt.dropdownValues?.find(
@@ -1333,8 +1359,8 @@ export default function CustomizationForm({
       );
     };
 
-    const nextOptions = options.map((opt) => {
-      const vIdx = variationMap.get(opt.id);
+    const nextOptions = options.map((opt, optIdx) => {
+      const vIdx = variationSlots.slotByOptIdx.get(optIdx);
       if (vIdx === undefined) return opt;
       const validNames = validNamesByPosition.get(vIdx) ?? [];
 
@@ -1360,7 +1386,7 @@ export default function CustomizationForm({
     });
 
     return nextOptions;
-  }, [options, variationOptionIds, variantsByCombo]);
+  }, [options, variationOptionIds, variantsByCombo, variationSlots]);
 
   // After every option mutation, read the user's current selection on the
   // variation dropdowns (in option1, option2, option3 order), build a combo
@@ -1370,9 +1396,12 @@ export default function CustomizationForm({
     if (filteredOptions.length === 0) return;
 
     // Collect value names from variation dropdowns in declared order.
+    // Index by slot (not by id) so duplicate `variationOptionIds` map to
+    // distinct options — see `variationSlots` for context.
     const selectedNames: string[] = [];
-    for (const optId of variationOptionIds) {
-      const opt = filteredOptions.find((o) => o.id === optId);
+    for (let vIdx = 0; vIdx < variationOptionIds.length; vIdx++) {
+      const optIdx = variationSlots.optIdxBySlot[vIdx];
+      const opt = optIdx >= 0 ? filteredOptions[optIdx] : undefined;
       if (!opt) {
         selectedNames.push("");
         continue;
@@ -1434,8 +1463,9 @@ export default function CustomizationForm({
     // (older shops without conf_variants, where variations[].values[].product_id
     // is the variant ID directly).
     if (!matchedId && variantById.size > 0) {
-      for (const optId of variationOptionIds) {
-        const opt = options.find((o) => o.id === optId);
+      for (let vIdx = 0; vIdx < variationOptionIds.length; vIdx++) {
+        const optIdx = variationSlots.optIdxBySlot[vIdx];
+        const opt = optIdx >= 0 ? options[optIdx] : undefined;
         if (!opt) continue;
         const v = opt.currentValue;
         if (v == null) continue;
@@ -1481,7 +1511,7 @@ export default function CustomizationForm({
     } catch {
       /* ignore — URL not parseable */
     }
-  }, [options, variantsByCombo, variantById, variationOptionIds]);
+  }, [options, variantsByCombo, variantById, variationOptionIds, variationSlots, filteredOptions]);
 
   const focusMissing = useCallback((missing: IOption[]) => {
     if (missing.length === 0 || typeof document === "undefined") return;
@@ -1553,8 +1583,9 @@ export default function CustomizationForm({
     // cart line reflects what the customer actually saw on the page.
     let activeUnitPrice = basePrice;
     if (variationOptionIds.length > 0 && variantsByCombo.size > 0) {
-      const names = variationOptionIds.map((optId) => {
-        const opt = options.find((o) => o.id === optId);
+      const names = variationOptionIds.map((_optId, vIdx) => {
+        const optIdx = variationSlots.optIdxBySlot[vIdx];
+        const opt = optIdx >= 0 ? options[optIdx] : undefined;
         if (!opt || opt.currentValue == null) return "";
         const v = opt.currentValue;
         const match =
@@ -1593,7 +1624,7 @@ export default function CustomizationForm({
     } finally {
       setAdding(false);
     }
-  }, [adding, addItem, openMiniCart, productId, options, productName, basePrice, focusMissing, variantsByCombo, variantById, variationOptionIds]);
+  }, [adding, addItem, openMiniCart, productId, options, productName, basePrice, focusMissing, variantsByCombo, variantById, variationOptionIds, variationSlots]);
 
   const handlePreviewRequest = useCallback(() => {
     const missing = getMissingRequired(options);
@@ -1725,7 +1756,35 @@ export default function CustomizationForm({
   /* Handle swatch / dropdown selection */
   const handleSelectValue = useCallback(
     async (option: IOption, val: SwatchVal | DropdownVal) => {
-      const targetOption = options.find((o) => o.id === option.id);
+      // Multiple options can share an id when Shopify ships more variant
+      // columns than Customily defines (product #455's Style/Pocket/Size
+      // where Pocket and Size both ride id 12711985971503). `find` always
+      // returns the FIRST match, which silently routes Size clicks to
+      // Pocket. Disambiguate by which candidate actually carries the value
+      // the user clicked — `valueName` is the most reliable cross-option
+      // discriminator since the original `options` (pre-filter) and the
+      // rendered list both expose it.
+      const candidates = options.filter((o) => o.id === option.id);
+      let targetOption: IOption | undefined;
+      if (candidates.length <= 1) {
+        targetOption = candidates[0];
+      } else {
+        targetOption =
+          candidates.find((o) => {
+            const values =
+              (o.dropdownValues as
+                | Array<{ valueName?: unknown }>
+                | undefined) ??
+              (o.swatchValues as
+                | Array<{ valueName?: unknown }>
+                | undefined) ??
+              [];
+            return values.some(
+              (v) =>
+                v.valueName !== undefined && v.valueName === val.valueName,
+            );
+          }) ?? candidates[0];
+      }
       if (!targetOption) return;
 
       // If the value's `id` is shared with another value in the same option
