@@ -192,12 +192,23 @@ function SwatchOption({
                     : "ring-1 ring-gray-200 hover:ring-[#ff6b6b] opacity-90 hover:opacity-100"
                 }`}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={val.thumbImage}
-                  alt={val.valueName}
-                  className="w-full h-full object-contain p-0.5"
-                />
+                {val.thumbImage ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={val.thumbImage}
+                    alt={val.valueName}
+                    className="w-full h-full object-contain p-0.5"
+                  />
+                ) : (
+                  // No thumbImage for this value — fall back to thumbColor as
+                  // a flat fill so the swatch tile is still meaningful in a
+                  // mixed list. Default to a neutral grey if neither is set.
+                  <span
+                    className="block w-full h-full"
+                    style={{ backgroundColor: val.thumbColor || "#e5e7eb" }}
+                    aria-hidden="true"
+                  />
+                )}
                 {isLoading ? (
                   <span className="absolute bottom-0.5 right-0.5 w-4 h-4 bg-[#ff6b6b] rounded-full flex items-center justify-center">
                     <Loader2 className="w-2.5 h-2.5 text-white animate-spin" />
