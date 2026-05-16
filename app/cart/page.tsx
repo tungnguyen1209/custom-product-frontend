@@ -6,7 +6,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import {
   ChevronRight, Minus, Plus, Trash2, ShoppingBag,
-  Tag, Lock, ArrowRight, Gift, Truck, Check,
+  Tag, Lock, ArrowRight, Gift,
 } from "lucide-react";
 
 /* ─── Mock data ────────────────────────────────────────────────────────── */
@@ -36,7 +36,7 @@ const INITIAL_ITEMS = [
   },
 ];
 
-const FREE_SHIP_THRESHOLD = 60;
+const FLAT_SHIPPING_RATE = 9.95;
 
 /* ─── Cart item row ────────────────────────────────────────────────────── */
 
@@ -121,7 +121,7 @@ export default function CartPage() {
 
   const subtotal = items.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
   const discount = promoState === "ok" ? subtotal * 0.1 : 0;
-  const shipping = subtotal - discount >= FREE_SHIP_THRESHOLD ? 0 : 9.95;
+  const shipping = items.length === 0 ? 0 : FLAT_SHIPPING_RATE;
   const total = subtotal - discount + shipping;
   const totalQty = items.reduce((s, i) => s + i.quantity, 0);
 
@@ -195,29 +195,6 @@ export default function CartPage() {
                 </Link>
               </div>
 
-              {/* Shipping progress banner */}
-              {shipping > 0 ? (
-                <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3">
-                  <div className="flex items-center justify-between text-sm mb-2">
-                    <span className="text-amber-800 font-medium">
-                      Add <strong>${(FREE_SHIP_THRESHOLD - (subtotal - discount)).toFixed(2)}</strong> more for FREE shipping
-                    </span>
-                    <Truck className="w-4 h-4 text-amber-500" />
-                  </div>
-                  <div className="h-1.5 bg-amber-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-amber-400 rounded-full transition-all duration-500"
-                      style={{ width: `${Math.min(100, ((subtotal - discount) / FREE_SHIP_THRESHOLD) * 100)}%` }}
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className="bg-[#fff0f0] border border-[#ff6b6b]/20 rounded-2xl px-4 py-3 flex items-center gap-2 text-sm text-[#1a6b61] font-medium">
-                  <Check className="w-4 h-4 text-[#ff6b6b]" />
-                  You qualify for FREE shipping!
-                </div>
-              )}
-
               {/* Items */}
               {items.map(item => (
                 <CartItem
@@ -282,8 +259,7 @@ export default function CartPage() {
                     )}
                     <Row
                       label="Shipping"
-                      value={shipping === 0 ? "FREE" : `$${shipping.toFixed(2)}`}
-                      highlight={shipping === 0}
+                      value={shipping === 0 ? "—" : `$${shipping.toFixed(2)}`}
                     />
                     <div className="flex justify-between font-bold text-gray-900 text-base border-t border-gray-100 pt-3 mt-1">
                       <span>Total</span>
@@ -309,7 +285,7 @@ export default function CartPage() {
                     ["🔒", "SSL encrypted & secure"],
                     ["📦", "Tracked shipping on every order"],
                     ["↩️", "99-day hassle-free returns"],
-                    ["🎁", "Free gift box included"],
+                    ["✨", "Hand-finished, made to order"],
                   ].map(([icon, text]) => (
                     <div key={text} className="flex items-center gap-2.5 text-xs text-gray-500">
                       <span className="text-base leading-none">{icon}</span>

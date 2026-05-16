@@ -11,7 +11,7 @@ import WM from "@megaads/wm";
 // stacking context). Removing it here would force a fragile import dance
 // later — leave it imported so the bar can mount without further churn.
 import {
-  Minus, Plus, Gift, ShoppingCart, Zap, Heart, Share2,
+  Minus, Plus, ShoppingCart, Zap, Heart, Share2,
   CheckCircle, ImagePlus, Upload, X, Check, ChevronDown, Loader2, Eye, Ruler,
 } from "lucide-react";
 import Zoom from "react-medium-image-zoom";
@@ -416,7 +416,7 @@ function VariationRadioOption({
           </button>
         )}
       </div>
-      <div className="flex flex-wrap gap-2.5">
+      <div className="flex flex-wrap gap-2">
         {uniqueValues.map((val) => {
           const valKey = val.valueName;
           const isActive = isValueSelected(val);
@@ -442,22 +442,22 @@ function VariationRadioOption({
                 aria-pressed={isActive}
                 aria-label={val.valueName}
                 title={val.valueName}
-                className={`relative w-10 h-10 rounded-full transition-all select-none focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ff6b6b]/40 ${
+                className={`relative w-8 h-8 rounded-full transition-all select-none focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-[#ff6b6b]/40 ${
                   isActive
-                    ? "ring-2 ring-offset-2 ring-[#ff6b6b] shadow-md"
+                    ? "ring-2 ring-offset-1 ring-[#ff6b6b] shadow-md"
                     : "ring-1 ring-inset ring-black/10 hover:ring-black/30 hover:scale-110"
                 } ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
                 style={{ backgroundColor: colorMeta.bg }}
               >
                 {isActive && (
                   <Check
-                    className="absolute inset-0 m-auto w-4 h-4"
+                    className="absolute inset-0 m-auto w-3.5 h-3.5"
                     strokeWidth={3}
                     style={{ color: checkColor }}
                   />
                 )}
                 {isThisLoading && (
-                  <Loader2 className="absolute -top-1 -right-1 w-3.5 h-3.5 text-[#ff6b6b] animate-spin bg-white rounded-full" />
+                  <Loader2 className="absolute -top-1 -right-1 w-3 h-3 text-[#ff6b6b] animate-spin bg-white rounded-full" />
                 )}
               </button>
             );
@@ -472,7 +472,7 @@ function VariationRadioOption({
               onClick={() => !loadingValueId && onSelect(val)}
               disabled={disabled}
               aria-pressed={isActive}
-              className={`relative inline-flex items-center justify-center min-w-[90px] px-5 py-3 rounded-2xl border-2 cursor-pointer transition-all select-none focus:outline-none focus:ring-2 focus:ring-[#ff6b6b]/30 ${
+              className={`relative inline-flex items-center justify-center min-w-[56px] px-3 py-1.5 rounded-lg border-2 cursor-pointer transition-all select-none focus:outline-none focus:ring-2 focus:ring-[#ff6b6b]/30 ${
                 isActive
                   ? "border-[#ff6b6b] bg-white shadow-sm"
                   : errored
@@ -481,14 +481,14 @@ function VariationRadioOption({
               } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               <span
-                className={`text-sm font-bold tracking-wide ${
+                className={`text-xs font-bold tracking-wide ${
                   isActive ? "text-[#ff6b6b]" : "text-gray-800"
                 }`}
               >
                 {val.valueName}
               </span>
               {isThisLoading && (
-                <Loader2 className="absolute -top-1.5 -right-1.5 w-4 h-4 text-[#ff6b6b] animate-spin bg-white rounded-full" />
+                <Loader2 className="absolute -top-1 -right-1 w-3.5 h-3.5 text-[#ff6b6b] animate-spin bg-white rounded-full" />
               )}
             </button>
           );
@@ -1985,13 +1985,6 @@ export default function CustomizationForm({
   if (!ready) {
     return (
       <div className="flex flex-col gap-5">
-        <div className="flex items-center gap-3 bg-[#fff0f0] border border-[#ff6b6b]/20 rounded-2xl px-5 py-4 shadow-sm">
-          <Gift className="w-5 h-5 text-[#ff6b6b] flex-shrink-0" />
-          <p className="text-[13px] text-[#ee5253] font-bold">
-            Free premium gift box included with every order
-          </p>
-        </div>
-
         {fetchError ? (
           <div className="px-1">
             <p className="text-sm text-red-500 font-bold">
@@ -2032,14 +2025,6 @@ export default function CustomizationForm({
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Gift box badge */}
-      <div className="flex items-center gap-3 bg-[#fff0f0] border border-[#ff6b6b]/20 rounded-2xl px-5 py-4 shadow-sm">
-        <Gift className="w-5 h-5 text-[#ff6b6b] flex-shrink-0" />
-        <p className="text-[13px] text-[#ee5253] font-bold">
-          Free premium gift box included with every order
-        </p>
-      </div>
-
       {/* Personalization progress — rendered inline at the top of the
           options list so it sits next to the fields the customer is
           actually filling. Sticky offsets equal the Header's measured

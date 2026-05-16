@@ -131,7 +131,7 @@ function OrderSummary({ items, shippingCost, finalTotal }: { items: any[]; shipp
       )}
 
       <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/60 flex flex-col gap-2">
-        {[["🎁", "Free gift box with every order"], ["🔒", "Secure & encrypted payment"]].map(([icon, text]) => (
+        {[["✨", "Hand-finished, made to order"], ["🔒", "Secure & encrypted payment"]].map(([icon, text]) => (
           <p key={text} className="text-xs text-gray-500 flex items-center gap-2">
             <span>{icon}</span> {text}
           </p>

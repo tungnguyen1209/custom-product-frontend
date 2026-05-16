@@ -86,15 +86,15 @@ export default function ProductDescription({ description }: ProductDescriptionPr
         )}
       </AccordionItem>
 
-      <AccordionItem title="Specifications">
+      <AccordionItem title="Shipping & Returns">
         <div className="grid grid-cols-2 gap-3">
           {[
-            { label: "Size", value: '72" × 6" (183cm × 15cm)' },
-            { label: "Material", value: "100% Polyester Satin" },
-            { label: "Print method", value: "Sublimation print" },
-            { label: "Personalisation", value: "Name + Year" },
-            { label: "Colour", value: "Full colour" },
-            { label: "Packaging", value: "Gift box included" },
+            { label: "Production time", value: "2–3 business days" },
+            { label: "Standard delivery", value: "10–12 business days" },
+            { label: "Express delivery", value: "6–8 business days" },
+            { label: "Return window", value: "30 days from delivery" },
+            { label: "Refund time", value: "5–7 business days" },
+            { label: "Shipping coverage", value: "Worldwide tracked" },
           ].map(({ label, value }) => (
             <div key={label} className="flex flex-col gap-0.5">
               <span className="text-xs text-gray-400 uppercase tracking-wide">
@@ -104,61 +104,35 @@ export default function ProductDescription({ description }: ProductDescriptionPr
             </div>
           ))}
         </div>
+        <p className="mt-4 text-xs text-gray-500 leading-relaxed">
+          Personalised items can be returned if defective or damaged on arrival.
+          Contact our support team within 30 days and we&apos;ll arrange a
+          replacement or full refund — no questions asked.
+        </p>
       </AccordionItem>
 
-      <AccordionItem title="Care Instructions">
+      <AccordionItem title="Personalization">
         <div className="space-y-2">
           <div className="flex items-start gap-2">
-            <span className="text-lg">🫧</span>
-            <p>Hand wash in cool or warm water. Do not machine wash.</p>
+            <span className="text-lg">✍️</span>
+            <p>Customise the graduate&apos;s name (up to 30 characters) and graduation year.</p>
           </div>
           <div className="flex items-start gap-2">
-            <span className="text-lg">🌬️</span>
-            <p>Hang to dry naturally. Do not tumble dry.</p>
+            <span className="text-lg">🎨</span>
+            <p>Choose from 8 sash colours and 6 character styles to match the graduate&apos;s personality.</p>
           </div>
           <div className="flex items-start gap-2">
-            <span className="text-lg">♨️</span>
-            <p>Iron on low heat if needed. Avoid ironing directly on printed areas.</p>
+            <span className="text-lg">📸</span>
+            <p>Upload an optional reference photo so our artist can capture the graduate&apos;s likeness.</p>
           </div>
           <div className="flex items-start gap-2">
-            <span className="text-lg">🚫</span>
-            <p>Do not bleach or dry clean.</p>
+            <span className="text-lg">💌</span>
+            <p>Add a short dedication message (up to 120 characters) printed below the character.</p>
           </div>
-        </div>
-      </AccordionItem>
-
-      <AccordionItem title="Why Choose gifthub?">
-        <div className="grid grid-cols-1 gap-3">
-          {[
-            {
-              icon: "🎨",
-              title: "Handcrafted with care",
-              desc: "Each item is individually personalised and quality-checked.",
-            },
-            {
-              icon: "⚡",
-              title: "Fast production",
-              desc: "Orders are personalised and dispatched within 2–3 business days.",
-            },
-            {
-              icon: "💌",
-              title: "Gift-ready packaging",
-              desc: "Every order arrives in our signature gift box at no extra cost.",
-            },
-            {
-              icon: "🛡️",
-              title: "99-Day guarantee",
-              desc: "Not happy? We'll replace or refund — no questions asked.",
-            },
-          ].map(({ icon, title, desc }) => (
-            <div key={title} className="flex items-start gap-3">
-              <span className="text-xl mt-0.5">{icon}</span>
-              <div>
-                <p className="font-semibold text-gray-800 text-sm">{title}</p>
-                <p className="text-gray-500 text-xs mt-0.5">{desc}</p>
-              </div>
-            </div>
-          ))}
+          <div className="flex items-start gap-2">
+            <span className="text-lg">🔍</span>
+            <p>Please double-check spelling before checkout — personalised items cannot be edited once production starts.</p>
+          </div>
         </div>
       </AccordionItem>
     </div>

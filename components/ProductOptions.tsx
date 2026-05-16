@@ -62,22 +62,22 @@ function SwatchColorPicker({
   onSelect: (id: string) => void;
 }) {
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-1.5">
       {swatches.map((s) => (
         <button
           key={s.id}
           title={s.label}
           onClick={() => onSelect(s.id)}
-          className={`relative w-9 h-9 rounded-full transition-all focus:outline-none ${
+          className={`relative w-7 h-7 rounded-full transition-all focus:outline-none ${
             selected === s.id
-              ? "ring-2 ring-offset-2 ring-[#ff6b6b] scale-110"
+              ? "ring-2 ring-offset-1 ring-[#ff6b6b] scale-110"
               : "hover:scale-105 hover:ring-2 hover:ring-offset-1 hover:ring-gray-300"
           }`}
           style={{ backgroundColor: s.color, borderWidth: 2, borderColor: s.border }}
         >
           {selected === s.id && (
             <span className="absolute inset-0 flex items-center justify-center">
-              <Check className="w-4 h-4 text-white drop-shadow" strokeWidth={3} />
+              <Check className="w-3 h-3 text-white drop-shadow" strokeWidth={3} />
             </span>
           )}
         </button>
@@ -96,33 +96,33 @@ function StyleSwatchPicker({
   onSelect: (id: string) => void;
 }) {
   return (
-    <div className="grid grid-cols-3 gap-2">
+    <div className="grid grid-cols-3 gap-1.5">
       {swatches.map((s) => (
         <button
           key={s.id}
           onClick={() => onSelect(s.id)}
-          className={`relative flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl border-2 transition-all text-center ${
+          className={`relative flex flex-col items-center gap-1 py-2 px-1.5 rounded-lg border-2 transition-all text-center ${
             selected === s.id
               ? "border-[#ff6b6b] bg-[#fff0f0]"
               : "border-gray-100 bg-gray-50 hover:border-gray-200"
           }`}
         >
           <div
-            className={`w-10 h-10 rounded-full bg-gradient-to-br ${s.bg} flex items-center justify-center text-xl`}
+            className={`w-7 h-7 rounded-full bg-gradient-to-br ${s.bg} flex items-center justify-center text-base`}
           >
             {s.emoji}
           </div>
-          <span className="text-xs font-medium text-gray-700 leading-tight">
+          <span className="text-[11px] font-medium text-gray-700 leading-tight">
             {s.label}
           </span>
           {s.price > 0 && (
-            <span className="text-[10px] text-[#ff6b6b] font-semibold">
+            <span className="text-[9px] text-[#ff6b6b] font-semibold">
               +AU${s.price.toFixed(2)}
             </span>
           )}
           {selected === s.id && (
-            <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-[#ff6b6b] rounded-full flex items-center justify-center">
-              <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
+            <span className="absolute top-1 right-1 w-3.5 h-3.5 bg-[#ff6b6b] rounded-full flex items-center justify-center">
+              <Check className="w-2 h-2 text-white" strokeWidth={3} />
             </span>
           )}
         </button>

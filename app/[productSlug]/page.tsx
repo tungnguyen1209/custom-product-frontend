@@ -460,14 +460,10 @@ export default async function ProductPage({ params, searchParams }: Props) {
           </div>
         </section>
 
-        {/* Below-the-fold content uses the SAME 5-col grid so reviews +
-            related-products track under the gallery (col-span-3) and
-            shipping/description sit under the customization form
-            (col-span-2). The related-products carousel was previously a
-            full-width band — moving it into the left column keeps it
-            visually aligned with the gallery + reviews stack and stops
-            it from reading as an unrelated banner floating between the
-            buy area and the info area. */}
+        {/* Reviews + shipping/description sit in a 5-col grid (reviews
+            under the gallery, shipping/description under the buy area).
+            Related products is pulled OUT of the grid below so it can
+            render as a full-width band. */}
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-10 xl:gap-16 items-start pt-4 border-t border-gray-100">
             <div
@@ -476,9 +472,6 @@ export default async function ProductPage({ params, searchParams }: Props) {
             >
               <DeferMount trigger="visible" rootMargin="400px">
                 <ReviewsSection productId={parsed.id} />
-              </DeferMount>
-              <DeferMount trigger="visible" rootMargin="400px">
-                <RelatedProducts productId={parsed.id} />
               </DeferMount>
             </div>
             <DeferMount
@@ -493,6 +486,10 @@ export default async function ProductPage({ params, searchParams }: Props) {
             </DeferMount>
           </div>
         </section>
+
+        <DeferMount trigger="visible" rootMargin="400px">
+          <RelatedProducts productId={parsed.id} />
+        </DeferMount>
       </main>
 
       <Footer />

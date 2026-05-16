@@ -2,10 +2,8 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { X, Minus, Plus, Trash2, ShoppingBag, ArrowRight, Truck } from "lucide-react";
+import { X, Minus, Plus, Trash2, ShoppingBag, ArrowRight } from "lucide-react";
 import { useCart } from "@/context/CartContext";
-
-const FREE_SHIP_THRESHOLD = 60;
 
 interface MiniCartProps {
   open: boolean;
@@ -16,8 +14,6 @@ export default function MiniCart({ open, onClose }: MiniCartProps) {
   const { cart, updateItem, removeItem } = useCart();
   const items = cart?.items ?? [];
   const subtotal = items.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0);
-  const remainingForFreeShip = Math.max(0, FREE_SHIP_THRESHOLD - subtotal);
-  const freeShipProgress = Math.min(100, (subtotal / FREE_SHIP_THRESHOLD) * 100);
 
   useEffect(() => {
     if (!open) return;
@@ -66,28 +62,6 @@ export default function MiniCart({ open, onClose }: MiniCartProps) {
             <X className="w-5 h-5" />
           </button>
         </div>
-
-        {items.length > 0 && (
-          <div className="px-5 py-3 bg-amber-50/60 border-b border-amber-100">
-            {remainingForFreeShip > 0 ? (
-              <p className="text-xs text-amber-800 mb-2">
-                <Truck className="w-3.5 h-3.5 inline mr-1 -mt-0.5" />
-                Add <strong>${remainingForFreeShip.toFixed(2)}</strong> more for FREE shipping
-              </p>
-            ) : (
-              <p className="text-xs text-emerald-700 font-medium mb-2">
-                <Truck className="w-3.5 h-3.5 inline mr-1 -mt-0.5" />
-                You qualify for FREE shipping!
-              </p>
-            )}
-            <div className="h-1.5 w-full bg-amber-100 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-[#ff6b6b] transition-all duration-500"
-                style={{ width: `${freeShipProgress}%` }}
-              />
-            </div>
-          </div>
-        )}
 
         <div className="flex-1 overflow-y-auto">
           {items.length === 0 ? (

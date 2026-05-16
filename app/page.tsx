@@ -101,7 +101,7 @@ const HOW_STEPS: Array<{
   {
     step: "03",
     title: "We craft and deliver",
-    body: "Hand-finished, packed in a complimentary gift box, on its way within 3 business days.",
+    body: "Hand-finished and quality-checked, on its way within 3 business days.",
     Icon: Truck,
   },
 ];
@@ -250,8 +250,8 @@ export default async function HomePage() {
                     </span>
                   </div>
                   <div className="hidden sm:flex items-center gap-2 text-sm text-gray-600">
-                    <Gift className="w-4 h-4 text-[#ff6b6b]" />
-                    Free gift box with every order
+                    <Sparkles className="w-4 h-4 text-[#ff6b6b]" />
+                    Hand-finished, ready in 3 days
                   </div>
                 </div>
               </div>
@@ -268,10 +268,10 @@ export default async function HomePage() {
         <section className="bg-white border-y border-gray-100">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-10">
             {[
-              { Icon: Gift, title: "Free gift box", body: "Every order, no extra cost" },
-              { Icon: Truck, title: "Free shipping over $50", body: "Tracked, AU-wide" },
-              { Icon: ShieldCheck, title: "100% happiness", body: "Or your money back" },
               { Icon: Sparkles, title: "Made-to-order", body: "Hand-finished in 3 days" },
+              { Icon: Truck, title: "Tracked shipping", body: "Worldwide delivery" },
+              { Icon: ShieldCheck, title: "100% happiness", body: "Or your money back" },
+              { Icon: Gift, title: "Personalised", body: "Names, photos & dates" },
             ].map(({ Icon, title, body }) => (
               <div key={title} className="flex items-start gap-3">
                 <div className="w-10 h-10 rounded-xl bg-[#fff0f0] flex items-center justify-center flex-shrink-0">
@@ -499,7 +499,7 @@ export default async function HomePage() {
                 </h2>
                 <p className="text-white/90 mt-3 text-base sm:text-lg max-w-xl">
                   Start with a blank canvas, add their story, and we&apos;ll
-                  handle the rest — gift box included.
+                  hand-finish it in 3 business days.
                 </p>
               </div>
 

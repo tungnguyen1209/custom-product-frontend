@@ -80,8 +80,7 @@ const PROMO_MESSAGES: Array<{
   Icon: React.ComponentType<{ className?: string }>;
   text: string;
 }> = [
-  { Icon: Truck, text: "Free shipping on orders over $50" },
-  { Icon: Gift, text: "Free gift box with every order" },
+  { Icon: Truck, text: "Made-to-order, ready in 2–3 business days" },
   { Icon: Star, text: "Rated 4.9 / 5 by 1,200+ happy gift-givers" },
   { Icon: ShieldCheck, text: "365-day satisfaction guarantee" },
 ];
