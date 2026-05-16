@@ -15,9 +15,21 @@ export interface CanvasSnapshot {
 }
 
 export interface CartItem {
+  /** Cart item primary key — populated on responses from the backend.
+   *  Used as the addressing key for update/remove so two lines with the
+   *  same productId but different customizations don't collide. */
+  id?: number;
   productId: number;
   productName: string;
+  /** Shopify-style variant ID (string for long numeric IDs). */
+  variantId?: string | null;
+  /** Variant publicTitle, e.g. "Black / M / Cotton". */
+  variantName?: string | null;
   customization: Record<string, any>;
+  /** SHA-256 hex of the canonicalised customization + visible canvas.
+   *  Computed client-side in `lib/cart-hash.ts` and used by the backend
+   *  as the dedupe key when merging Add-to-Cart calls. */
+  customizationHash?: string | null;
   canvas?: CanvasSnapshot;
   previewImageUrl?: string | null;
   quantity: number;
@@ -35,8 +47,8 @@ interface CartContextType {
   loading: boolean;
   error: string | null;
   addItem: (item: Omit<CartItem, 'quantity'> & { quantity?: number }) => Promise<void>;
-  updateItem: (productId: number, quantity: number) => Promise<void>;
-  removeItem: (productId: number) => Promise<void>;
+  updateItem: (itemId: number, quantity: number) => Promise<void>;
+  removeItem: (itemId: number) => Promise<void>;
   clearCart: () => Promise<void>;
   refreshCart: () => Promise<void>;
   isMiniCartOpen: boolean;
@@ -95,10 +107,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const updateItem = async (productId: number, quantity: number) => {
+  const updateItem = async (itemId: number, quantity: number) => {
     if (!sessionId) return;
     try {
-      const updatedCart = await apiRequest(`/cart/items/${productId}`, {
+      const updatedCart = await apiRequest(`/cart/items/${itemId}`, {
         method: 'PUT',
         body: JSON.stringify({ quantity }),
       }, sessionId);
@@ -108,10 +120,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const removeItem = async (productId: number) => {
+  const removeItem = async (itemId: number) => {
     if (!sessionId) return;
     try {
-      const updatedCart = await apiRequest(`/cart/items/${productId}`, {
+      const updatedCart = await apiRequest(`/cart/items/${itemId}`, {
         method: 'DELETE',
       }, sessionId);
       setCart(updatedCart);

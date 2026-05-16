@@ -82,7 +82,10 @@ export default function MiniCart({ open, onClose }: MiniCartProps) {
           ) : (
             <ul className="divide-y divide-gray-100">
               {items.map((item) => (
-                <li key={item.productId} className="flex gap-3 px-5 py-4">
+                <li
+                  key={item.id ?? `${item.productId}-${item.customizationHash ?? ''}`}
+                  className="flex gap-3 px-5 py-4"
+                >
                   <div className="flex-shrink-0 w-16 h-16 rounded-xl bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center overflow-hidden">
                     {item.previewImageUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -101,7 +104,7 @@ export default function MiniCart({ open, onClose }: MiniCartProps) {
                         {item.productName}
                       </h3>
                       <button
-                        onClick={() => removeItem(item.productId)}
+                        onClick={() => item.id != null && removeItem(item.id)}
                         className="flex-shrink-0 p-1 text-gray-300 hover:text-red-400 transition-colors"
                         aria-label="Remove item"
                       >
@@ -123,7 +126,9 @@ export default function MiniCart({ open, onClose }: MiniCartProps) {
                     <div className="flex items-center justify-between mt-2.5">
                       <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
                         <button
-                          onClick={() => updateItem(item.productId, item.quantity - 1)}
+                          onClick={() =>
+                            item.id != null && updateItem(item.id, item.quantity - 1)
+                          }
                           disabled={item.quantity <= 1}
                           className="w-7 h-7 flex items-center justify-center hover:bg-gray-50 text-gray-500 disabled:opacity-30 transition-colors"
                           aria-label="Decrease quantity"
@@ -132,7 +137,9 @@ export default function MiniCart({ open, onClose }: MiniCartProps) {
                         </button>
                         <span className="w-7 text-center text-xs font-semibold">{item.quantity}</span>
                         <button
-                          onClick={() => updateItem(item.productId, item.quantity + 1)}
+                          onClick={() =>
+                            item.id != null && updateItem(item.id, item.quantity + 1)
+                          }
                           className="w-7 h-7 flex items-center justify-center hover:bg-gray-50 text-gray-500 transition-colors"
                           aria-label="Increase quantity"
                         >

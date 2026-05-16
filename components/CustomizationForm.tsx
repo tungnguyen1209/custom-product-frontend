@@ -1107,6 +1107,7 @@ async function resolveInitialTemplate(customization: any): Promise<any | null> {
 
 import { useCart } from "@/context/CartContext";
 import { getProductCustomization, type ProductCustomizationData } from "@/lib/api";
+import { computeCartItemHash } from "@/lib/cart-hash";
 
 interface CustomizationFormProps {
   productId: string;
@@ -1201,6 +1202,18 @@ export default function CustomizationForm({
   // True while we're piggybacking on wm-show-preview just to capture an image
   // for cart upload — suppresses the global "open preview modal" listener.
   const silentPreviewRef = useRef(false);
+
+  // Mirrors the variant resolved by the URL-sync effect so handleAdd can
+  // send `variantId` + `variantName` to the cart without duplicating the
+  // (slightly subtle) lookup logic. The effect knows how to match across
+  // id-vs-valueName ambiguity and whitespace variants in publicTitle;
+  // handleAdd just reads the result.
+  const currentVariantRef = useRef<{
+    variantId: string;
+    publicTitle: string | null;
+    price: number | null;
+    comparePrice: number | null;
+  } | null>(null);
 
   const missingRequired = getMissingRequired(options);
 
@@ -1459,6 +1472,7 @@ export default function CustomizationForm({
     }
 
     let matchedId: string | null = null;
+    let matchedTitle: string | null = null;
     let matchedEntry:
       | { price: number | null; comparePrice: number | null }
       | null = null;
@@ -1474,6 +1488,7 @@ export default function CustomizationForm({
       const filtered = selectedNames.filter((n) => n.length > 0);
       const comboKey = filtered.join(" / ");
       let hit = variantsByCombo.get(comboKey);
+      if (hit) matchedTitle = comboKey;
 
       if (!hit) {
         const normalize = (s: string): string =>
@@ -1483,6 +1498,7 @@ export default function CustomizationForm({
           const candidate = k.split(" / ").map((p) => normalize(p.trim())).join("|");
           if (candidate === target) {
             hit = v;
+            matchedTitle = k;
             break;
           }
         }
@@ -1510,12 +1526,16 @@ export default function CustomizationForm({
         if (entry) {
           matchedId = String(v).trim();
           matchedEntry = entry;
+          // Older shops don't carry publicTitle for these — use the
+          // joined selectedNames so the cart still gets a readable label.
+          matchedTitle = selectedNames.filter((n) => n.length > 0).join(" / ") || null;
           break;
         }
       }
     }
 
     if (!matchedId || !matchedEntry) {
+      currentVariantRef.current = null;
       if (typeof window !== "undefined") {
         console.warn("[variant] NO MATCH FOUND. Aborting URL/Price update.", {
           variationOptionIds,
@@ -1525,6 +1545,17 @@ export default function CustomizationForm({
       }
       return;
     }
+
+    // Cache the resolved variant so handleAdd can attach variant_id and
+    // variant_name to the cart line without re-running the lookup. The
+    // ref is the source of truth — anything that resolves a variant here
+    // must update it.
+    currentVariantRef.current = {
+      variantId: matchedId,
+      publicTitle: matchedTitle,
+      price: matchedEntry.price,
+      comparePrice: matchedEntry.comparePrice,
+    };
 
     window.dispatchEvent(
       new CustomEvent("wm-price-update", {
@@ -1571,9 +1602,19 @@ export default function CustomizationForm({
 
     setAdding(true);
 
+    // Persist only the options the customer actually sees and uses.
+    // Internal / Callie-managed / visually-hidden options carry data the
+    // editor needs but shouldn't end up in the order snapshot or the
+    // dedupe hash. The flags here match the same filter used for
+    // canvas elements above and for `getMissingRequired`.
     const selected: Record<string, any> = {};
     options.forEach(opt => {
-      if (opt.currentValue) {
+      if (
+        opt.isShow &&
+        !opt.hideVisually &&
+        !opt.isCallieHide &&
+        opt.currentValue
+      ) {
         selected[opt.label] = opt.currentValue;
       }
     });
@@ -1587,11 +1628,15 @@ export default function CustomizationForm({
           ? Object.values(rawTemplate.elements)
           : [];
 
-    // Keep only visible elements (isShow) OR fully opaque ones — drops hidden
-    // helper layers (guides, bounding boxes) that the editor uses internally
-    // but don't belong in the order snapshot.
+    // Keep only real user-visible layers — drops hidden helpers (guides,
+    // bounding boxes, callie-managed defaults) that the editor uses
+    // internally. Hash key relies on this filter being deterministic so
+    // re-adds of the same configuration produce the same hash.
     const visibleElements = rawElements.filter(
-      (el) => el?.isShow === true || el?.opacity === 1,
+      (el) =>
+        el?.isShow === true &&
+        !el?.isHideVisually &&
+        !el?.isCallieHide,
     );
 
     const canvas = rawTemplate
@@ -1602,6 +1647,11 @@ export default function CustomizationForm({
           elements: visibleElements,
         }
       : undefined;
+
+    // Dedupe key sent to the backend. Computed before the preview upload
+    // so two rapid clicks on Add to Cart produce identical hashes even
+    // if the second click captures a different preview URL.
+    const customizationHash = await computeCartItemHash(selected, canvas);
 
     let previewImageUrl: string | null = null;
     silentPreviewRef.current = true;
@@ -1616,40 +1666,24 @@ export default function CustomizationForm({
       silentPreviewRef.current = false;
     }
 
-    // Use the price of the currently selected variant when available so the
-    // cart line reflects what the customer actually saw on the page.
-    let activeUnitPrice = basePrice;
-    if (variationOptionIds.length > 0 && variantsByCombo.size > 0) {
-      const names = variationOptionIds.map((_optId, vIdx) => {
-        const optIdx = variationSlots.optIdxBySlot[vIdx];
-        const opt = optIdx >= 0 ? options[optIdx] : undefined;
-        if (!opt || opt.currentValue == null) return "";
-        const v = opt.currentValue;
-        const match =
-          opt.dropdownValues?.find((d) => d.id === v) ??
-          opt.swatchValues?.find((s) => s.id === v);
-        return match?.valueName ?? "";
-      });
-      const comboKey = names.filter(n => n.length > 0).join(" / ");
-      const hit = variantsByCombo.get(comboKey);
-      if (hit?.price != null) activeUnitPrice = hit.price;
-    }
-    if (activeUnitPrice === basePrice && variantById.size > 0) {
-      // Fallback to direct ID match
-      for (const opt of options) {
-        const v = opt.currentValue;
-        if (v == null) continue;
-        const entry = variantById.get(String(v).trim());
-        if (entry?.price != null) activeUnitPrice = entry.price;
-      }
-    }
+    // Read the variant resolved by the URL-sync effect. That effect uses
+    // `filteredOptions` + a lenient (id OR valueName) match, which catches
+    // shapes that a strict id-only lookup misses. Falling back to its
+    // result keeps cart variant_id/variant_name consistent with the URL.
+    const cv = currentVariantRef.current;
+    const activeUnitPrice = cv?.price ?? basePrice;
+    const activeVariantId: string | null = cv?.variantId ?? null;
+    const activeVariantName: string | null = cv?.publicTitle ?? null;
 
     try {
       await addItem({
         productId: parseInt(productId),
         productName,
+        variantId: activeVariantId,
+        variantName: activeVariantName,
         unitPrice: activeUnitPrice,
         customization: selected,
+        customizationHash,
         canvas,
         previewImageUrl: previewImageUrl ?? undefined,
       });
@@ -1661,7 +1695,7 @@ export default function CustomizationForm({
     } finally {
       setAdding(false);
     }
-  }, [adding, addItem, openMiniCart, productId, options, productName, basePrice, focusMissing, variantsByCombo, variantById, variationOptionIds, variationSlots]);
+  }, [adding, addItem, openMiniCart, productId, options, productName, basePrice, focusMissing]);
 
   const handlePreviewRequest = useCallback(() => {
     const missing = getMissingRequired(options);
@@ -2027,17 +2061,18 @@ export default function CustomizationForm({
     <div className="flex flex-col gap-6">
       {/* Personalization progress — rendered inline at the top of the
           options list so it sits next to the fields the customer is
-          actually filling. Sticky offsets equal the Header's measured
-          height so the bar pins flush against its bottom edge:
-            - Mobile: promo `h-9` (36px) + main `h-16` (64px) = 100px.
-            - Desktop: + nav `h-12` (48px) = 148px.
-          The bar's full border/shadow makes any clipping more obvious
-          than the gallery (which hides clipping inside its rounded
-          image corners), hence the explicit pixel values instead of
-          the gallery's `top-24 lg:top-32` shorthand. `z-30` keeps it
-          above option pills but under the Header dropdowns (z-50). */}
+          actually filling. Sticky offsets:
+            - Mobile: 340px. The gallery is already sticky at top-100px
+              with z-40 and shrinks to 60% width (≈225px tall) on mobile.
+              Pinning the progress bar at the gallery's natural top would
+              put it behind the gallery; 340 (= 100 header + ~225 gallery
+              + ~15 buffer) drops it just below.
+            - Desktop: 148px (promo 36 + main 64 + nav 48), since gallery
+              lives in a separate column and doesn't compete.
+          `z-30` keeps it above option pills but under the Header
+          dropdowns (z-50) and the sticky gallery (z-40). */}
       {requiredTotal > 0 && (
-        <div className="sticky top-[100px] lg:top-[148px] z-30 rounded-2xl border border-gray-100 bg-white px-5 py-3.5 shadow-sm">
+        <div className="sticky top-[340px] lg:top-[148px] z-30 rounded-2xl border border-gray-100 bg-white px-5 py-3.5 shadow-sm">
           <div className="flex items-center justify-between text-xs font-bold">
             <span className="text-gray-700">
               {allDone ? "All set!" : "Personalization progress"}
@@ -2168,35 +2203,22 @@ export default function CustomizationForm({
       {ready && typeof window !== "undefined" &&
         createPortal(
           <div className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white shadow-[0_-4px_12px_rgba(0,0,0,0.05)] lg:hidden">
-            <div className="flex items-center gap-3 px-4 py-2.5">
-              {imageUrl && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={imageUrl}
-                  alt=""
-                  className="h-12 w-12 flex-shrink-0 rounded-lg border border-gray-100 object-cover"
-                />
-              )}
-              <div className="min-w-0 flex-1">
-                <div className="text-[11px] uppercase tracking-wide text-gray-500">
-                  Your design
-                </div>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-base font-bold text-gray-900">
-                    ${currentPrice.toFixed(2)}
-                  </span>
-                  {currentComparePrice != null &&
-                    currentComparePrice > currentPrice && (
-                      <span className="text-xs text-gray-400 line-through">
-                        ${currentComparePrice.toFixed(2)}
-                      </span>
-                    )}
-                </div>
+            <div className="flex items-center gap-3 px-4 py-3">
+              <div className="min-w-0 flex-1 flex items-baseline gap-2">
+                <span className="text-lg font-bold text-gray-900">
+                  ${currentPrice.toFixed(2)}
+                </span>
+                {currentComparePrice != null &&
+                  currentComparePrice > currentPrice && (
+                    <span className="text-xs text-gray-400 line-through">
+                      ${currentComparePrice.toFixed(2)}
+                    </span>
+                  )}
               </div>
               <button
                 onClick={() => void handleAdd()}
                 disabled={adding}
-                className={`flex-shrink-0 rounded-xl px-4 py-2.5 text-sm font-bold text-white shadow-md shadow-[#ff6b6b]/20 transition-all disabled:cursor-wait disabled:opacity-80 ${
+                className={`flex-shrink-0 rounded-xl px-5 py-2.5 text-sm font-bold text-white shadow-md shadow-[#ff6b6b]/20 transition-all disabled:cursor-wait disabled:opacity-80 ${
                   added
                     ? "bg-emerald-500"
                     : "bg-[#ff6b6b] hover:bg-[#ee5253]"

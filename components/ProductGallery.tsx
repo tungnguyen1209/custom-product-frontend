@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 
 const fallbackImages = [
@@ -54,6 +55,10 @@ export default function ProductGallery({
   // Click-to-open lightbox modal with full-screen slider.
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  // Track drag start for the lightbox swipe gesture. Kept separate from
+  // `dragStartX` so the main slider and the lightbox don't share state.
+  const lightboxDragX = useRef<number | null>(null);
+  const lightboxIsDragging = useRef(false);
 
   const prev = () => {
     setShowCanvas(false);
@@ -73,6 +78,41 @@ export default function ProductGallery({
     setLightboxIndex((i) => (i === 0 ? productImages.length - 1 : i - 1));
   const lightboxNext = () =>
     setLightboxIndex((i) => (i === productImages.length - 1 ? 0 : i + 1));
+
+  /* Lightbox swipe — same 50px threshold as the main slider so the
+     gesture feel matches. Touch covers mobile; mouse drag covers desktop
+     since the lightbox has no hover preview to compete with. */
+  const lightboxTouchStart = (e: React.TouchEvent) => {
+    lightboxDragX.current = e.touches[0].clientX;
+  };
+  const lightboxTouchEnd = (e: React.TouchEvent) => {
+    if (lightboxDragX.current === null) return;
+    const diff = lightboxDragX.current - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) {
+      if (diff > 0) lightboxNext();
+      else lightboxPrev();
+    }
+    lightboxDragX.current = null;
+  };
+  const lightboxMouseDown = (e: React.MouseEvent) => {
+    if (e.button !== 0) return;
+    lightboxDragX.current = e.clientX;
+    lightboxIsDragging.current = true;
+  };
+  const lightboxMouseUp = (e: React.MouseEvent) => {
+    if (!lightboxIsDragging.current || lightboxDragX.current === null) return;
+    const diff = lightboxDragX.current - e.clientX;
+    if (Math.abs(diff) > 50) {
+      if (diff > 0) lightboxNext();
+      else lightboxPrev();
+    }
+    lightboxIsDragging.current = false;
+    lightboxDragX.current = null;
+  };
+  const lightboxMouseLeave = () => {
+    lightboxIsDragging.current = false;
+    lightboxDragX.current = null;
+  };
 
   // Keyboard nav when lightbox is open: ESC closes, ←/→ navigate.
   useEffect(() => {
@@ -305,9 +345,11 @@ export default function ProductGallery({
       </div>
 
       {/* Lightbox modal — full-screen slider triggered by click on the
-          main image. Built inline (no extra dep) since we already have
-          carousel navigation logic. */}
-      {lightboxOpen && (
+          main image. Portaled to <body> so its z-index isn't trapped
+          by the gallery's sticky-wrapper stacking context (otherwise
+          the mobile sticky Add-to-Cart bar, also portaled to body,
+          renders over the lightbox's thumbnail rail). */}
+      {lightboxOpen && typeof window !== "undefined" && createPortal(
         <div
           className="fixed inset-0 z-[60] bg-black/85 backdrop-blur-sm flex items-center justify-center"
           onClick={closeLightbox}
@@ -344,10 +386,17 @@ export default function ProductGallery({
             <ChevronRight className="w-6 h-6" />
           </button>
 
-          {/* Main image — click on it shouldn't close the modal */}
+          {/* Main image — click on it shouldn't close the modal. Touch
+              and mouse drag both navigate prev/next via the swipe
+              handlers above. */}
           <div
-            className="relative max-w-[90vw] max-h-[85vh] flex items-center justify-center"
+            className="relative max-w-[90vw] max-h-[85vh] flex items-center justify-center cursor-grab active:cursor-grabbing select-none"
             onClick={(e) => e.stopPropagation()}
+            onTouchStart={lightboxTouchStart}
+            onTouchEnd={lightboxTouchEnd}
+            onMouseDown={lightboxMouseDown}
+            onMouseUp={lightboxMouseUp}
+            onMouseLeave={lightboxMouseLeave}
           >
             {productImages[lightboxIndex]?.url ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -403,7 +452,8 @@ export default function ProductGallery({
           <div className="absolute top-4 left-4 text-white/90 text-sm font-medium px-3 py-1 rounded-full bg-white/10">
             {lightboxIndex + 1} / {productImages.length}
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

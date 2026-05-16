@@ -112,27 +112,31 @@ export default function ProductDescription({ description }: ProductDescriptionPr
       </AccordionItem>
 
       <AccordionItem title="Personalization">
-        <div className="space-y-2">
-          <div className="flex items-start gap-2">
-            <span className="text-lg">✍️</span>
-            <p>Customise the graduate&apos;s name (up to 30 characters) and graduation year.</p>
-          </div>
-          <div className="flex items-start gap-2">
-            <span className="text-lg">🎨</span>
-            <p>Choose from 8 sash colours and 6 character styles to match the graduate&apos;s personality.</p>
-          </div>
-          <div className="flex items-start gap-2">
-            <span className="text-lg">📸</span>
-            <p>Upload an optional reference photo so our artist can capture the graduate&apos;s likeness.</p>
-          </div>
-          <div className="flex items-start gap-2">
-            <span className="text-lg">💌</span>
-            <p>Add a short dedication message (up to 120 characters) printed below the character.</p>
-          </div>
-          <div className="flex items-start gap-2">
-            <span className="text-lg">🔍</span>
-            <p>Please double-check spelling before checkout — personalised items cannot be edited once production starts.</p>
-          </div>
+        <div className="space-y-3">
+          <p>
+            Please complete fields required to customize options
+            (Name/Characteristics) and recheck carefully all the customized
+            options.
+          </p>
+          <p>
+            <span className="font-semibold text-gray-700">Text:</span>{" "}
+            Standard English excluding special characters, emojis to ensure
+            the best looking.
+          </p>
+          <p>
+            <span className="font-semibold text-gray-700">Characteristics:</span>{" "}
+            Pick one-by-one options that match your description.
+          </p>
+          <p>
+            The last step, click{" "}
+            <span className="font-semibold text-gray-700">&quot;Preview&quot;</span>{" "}
+            to get a glimpse of the wonderful creation you&apos;ve made ❤️.
+          </p>
+          <p className="text-xs text-gray-500 leading-relaxed border-t border-gray-100 pt-3 mt-1">
+            Please be aware that the Preview may be slightly different from the
+            physical item in terms of color due to our lighting at our product
+            photoshoot or your device&apos;s display.
+          </p>
         </div>
       </AccordionItem>
     </div>

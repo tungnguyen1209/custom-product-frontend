@@ -612,16 +612,20 @@ function HeroMosaic({ tiles }: { tiles: ProductCardData[] }) {
         </span>
       </Link>
 
-      {/* Mid-right floating card with stats */}
-      <div className="col-span-2 row-span-1 relative rounded-3xl overflow-hidden bg-white ring-1 ring-black/5 shadow-md p-3 sm:p-4 flex items-center gap-3">
-        <div className="w-9 h-9 rounded-xl bg-[#fff0f0] flex items-center justify-center flex-shrink-0">
+      {/* Mid-right floating card with stats. Mobile gets a stacked
+          layout — the col-span-2 × row-span-1 cell is ~100×60px on
+          phones, too cramped for icon + 2 lines of text horizontally. */}
+      <div className="col-span-2 row-span-1 relative rounded-3xl overflow-hidden bg-white ring-1 ring-black/5 shadow-md px-2.5 py-2 sm:p-4 flex flex-col sm:flex-row items-center sm:items-center sm:gap-3 justify-center text-center sm:text-left">
+        <div className="hidden sm:flex w-9 h-9 rounded-xl bg-[#fff0f0] items-center justify-center flex-shrink-0">
           <Heart className="w-4 h-4 text-[#ff6b6b]" />
         </div>
-        <div className="min-w-0">
-          <p className="text-xs font-bold text-gray-900 leading-tight">
+        <div className="min-w-0 leading-tight">
+          <p className="text-[11px] sm:text-xs font-bold text-gray-900 whitespace-nowrap">
+            <span className="text-[#ff6b6b]">★</span> 4.9 / 5
+          </p>
+          <p className="text-[10px] sm:text-[11px] text-gray-500 whitespace-nowrap mt-0.5">
             1,200+ reviews
           </p>
-          <p className="text-[11px] text-gray-500">Average 4.9 / 5</p>
         </div>
       </div>
 

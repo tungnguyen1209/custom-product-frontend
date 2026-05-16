@@ -198,10 +198,14 @@ export default function CartPage() {
               {/* Items */}
               {items.map(item => (
                 <CartItem
-                  key={item.productId}
+                  key={item.id ?? `${item.productId}-${item.customizationHash ?? ''}`}
                   item={item}
-                  onQty={(d) => updateItem(item.productId, item.quantity + d)}
-                  onRemove={() => removeItem(item.productId)}
+                  onQty={(d) =>
+                    item.id != null && updateItem(item.id, item.quantity + d)
+                  }
+                  onRemove={() =>
+                    item.id != null && removeItem(item.id)
+                  }
                 />
               ))}
 
