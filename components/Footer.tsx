@@ -13,15 +13,16 @@ const links: Record<string, Array<{ label: string; href: string | null }>> = {
     { label: "Help Center", href: "/help-center" },
     { label: "Track Order", href: "/track-order" },
     { label: "Track Ticket", href: "/help-center/track" },
+    { label: "Contact Us", href: "/blog/contact-us" },
     { label: "Wishlist", href: "/wishlist" },
-    { label: "Returns & Exchanges", href: null },
   ],
-  "About Gifthub": [
-    { label: "Brand Story", href: null },
-    { label: "Careers", href: null },
-    { label: "Press", href: null },
-    { label: "Sustainability", href: null },
-    { label: "Partners", href: null },
+  "Company": [
+    { label: "About Us", href: "/blog/about-us" },
+    { label: "Shipping & Delivery", href: "/blog/shipping-delivery" },
+    { label: "Returns & Exchanges", href: "/blog/returns-exchanges" },
+    { label: "Refund Policy", href: "/blog/refund-policy" },
+    { label: "Cancel or Change Order", href: "/blog/cancel-change-order" },
+    { label: "Payment Methods", href: "/blog/payment-methods" },
   ],
   "Discover": [
     { label: "Family Gifts", href: "/products?tags=family" },
@@ -60,7 +61,7 @@ export default function Footer() {
     <footer className="bg-[#2d3436] text-gray-300 pt-16 pb-8 mt-auto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div
-          className={`grid grid-cols-2 ${posts.length > 0 ? "md:grid-cols-6" : "md:grid-cols-5"} gap-12 mb-12`}
+          className={`grid grid-cols-2 md:grid-cols-6 ${posts.length > 0 ? "lg:grid-cols-7" : "lg:grid-cols-6"} gap-10 mb-12`}
         >
           {/* Brand column */}
           <div className="col-span-2 md:col-span-2">
@@ -144,15 +145,19 @@ export default function Footer() {
             © 2026 Gifthub Inc. Every gift tells a story.
           </p>
           <div className="flex items-center gap-6 text-xs text-gray-500">
-            <a href="#" className="hover:text-white transition-colors">
+            <Link
+              href="/blog/privacy-policy"
+              className="hover:text-white transition-colors"
+            >
               Privacy Policy
-            </a>
-            <a href="#" className="hover:text-white transition-colors">
+            </Link>
+            <Link
+              href="/blog/terms-of-service"
+              className="hover:text-white transition-colors"
+            >
               Terms of Service
-            </a>
-            <a href="#" className="hover:text-white transition-colors">
-              Cookie Settings
-            </a>
+            </Link>
+            <span className="cursor-default">Cookie Settings</span>
           </div>
           <div className="flex items-center gap-3">
             {paymentIcons.map((icon, i) => (

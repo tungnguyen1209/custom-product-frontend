@@ -16,6 +16,8 @@ const NAV: NavItem[] = [
   { href: "/admin/products", label: "Products", icon: "▢" },
   { href: "/admin/orders", label: "Orders", icon: "▤" },
   { href: "/admin/reviews", label: "Reviews", icon: "★" },
+  { href: "/admin/reports", label: "Reports", icon: "⚑" },
+  { href: "/admin/tickets", label: "Tickets", icon: "✉" },
   { href: "/admin/posts", label: "Posts", icon: "✎" },
   { href: "/admin/collections", label: "Collections", icon: "▥" },
   { href: "/admin/tags", label: "Tags", icon: "#" },

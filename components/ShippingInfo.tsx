@@ -1,7 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Truck, ShoppingCart, Package, RefreshCw } from "lucide-react";
+import Link from "next/link";
+import {
+  Truck,
+  ShoppingCart,
+  Package,
+  RefreshCw,
+  FileCheck,
+  Flag,
+} from "lucide-react";
 
 /** Add N calendar days to a date, returning a new Date (does not mutate). */
 function addDays(date: Date, days: number): Date {
@@ -26,10 +34,17 @@ function fmtRange(a: Date, b: Date): string {
   return `${fmtDay(a)} – ${fmtDay(b)}`;
 }
 
-export default function ShippingInfo() {
+export default function ShippingInfo({
+  productSlug,
+}: {
+  productSlug?: string;
+} = {}) {
   // DeferMount wraps this component, so it only mounts client-side once
   // scrolled into view — no SSR hydration mismatch from `new Date()`.
   const [today] = useState(() => new Date());
+  const reportHref = productSlug
+    ? `/report-product/${productSlug}`
+    : "/help-center";
   const shipsStart = addDays(today, 2);
   const shipsEnd = addDays(today, 3);
   const deliveredStart = addDays(today, 10);
@@ -94,6 +109,60 @@ export default function ShippingInfo() {
         <p className="text-xs text-[#ff6b6b] leading-relaxed">
           *ETA is applied for US only, international orders may take longer.
         </p>
+      </div>
+
+      {/* Policies */}
+      <div className="border-t border-gray-100 px-5 py-5 flex items-start gap-3">
+        <FileCheck
+          className="w-7 h-7 text-gray-700 flex-shrink-0 mt-0.5"
+          strokeWidth={1.8}
+        />
+        <div className="flex-1">
+          <p className="text-sm font-bold text-gray-900 mb-1">Policies</p>
+          <p className="text-sm text-gray-600 leading-snug">
+            Eligible for{" "}
+            <Link
+              href="/help-center"
+              className="text-[#ff6b6b] hover:underline font-medium"
+            >
+              Refund
+            </Link>{" "}
+            or{" "}
+            <Link
+              href="/help-center"
+              className="text-[#ff6b6b] hover:underline font-medium"
+            >
+              Return and Replacement
+            </Link>{" "}
+            within 60 days from the date of delivery
+          </p>
+        </div>
+      </div>
+
+      {/* Need Support */}
+      <div className="border-t border-gray-100 px-5 py-5 flex items-start gap-3">
+        <Flag
+          className="w-7 h-7 text-gray-700 flex-shrink-0 mt-0.5"
+          strokeWidth={1.8}
+        />
+        <div className="flex-1">
+          <p className="text-sm font-bold text-gray-900 mb-1">Need Support?</p>
+          <p className="text-sm leading-snug">
+            <Link
+              href="/help-center"
+              className="text-[#ff6b6b] hover:underline font-medium"
+            >
+              Submit a ticket
+            </Link>
+            <span className="text-gray-300 mx-2">|</span>
+            <Link
+              href={reportHref}
+              className="text-[#ff6b6b] hover:underline font-medium"
+            >
+              Report Product
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

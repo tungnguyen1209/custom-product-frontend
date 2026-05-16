@@ -479,7 +479,7 @@ export default async function ProductPage({ params, searchParams }: Props) {
               trigger="visible"
               rootMargin="400px"
             >
-              <ShippingInfo />
+              <ShippingInfo productSlug={canonical} />
               <ProductDescription
                 description={product.description ?? null}
               />

@@ -373,3 +373,50 @@ export async function markReviewHelpful(
     method: 'POST',
   });
 }
+
+export type ProductReportReason =
+  | 'trademark'
+  | 'community_standards'
+  | 'unsuitable_for_kids'
+  | 'other';
+
+export type ProductReportStatus =
+  | 'pending'
+  | 'reviewing'
+  | 'resolved'
+  | 'dismissed';
+
+export interface CreateProductReportInput {
+  reason: ProductReportReason;
+  comments?: string;
+  name: string;
+  email: string;
+  attachments?: string[];
+}
+
+export interface ProductReportSummary {
+  id: number;
+  productId: number;
+  reason: ProductReportReason;
+  status: ProductReportStatus;
+  createdAt: string;
+}
+
+export async function submitProductReport(
+  productId: number | string,
+  input: CreateProductReportInput,
+): Promise<ProductReportSummary> {
+  return apiRequest(`/products/${productId}/reports`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export async function uploadReportAttachment(
+  dataUrl: string,
+): Promise<{ url: string; key: string }> {
+  return apiRequest('/uploads/report-attachment', {
+    method: 'POST',
+    body: JSON.stringify({ dataUrl }),
+  });
+}

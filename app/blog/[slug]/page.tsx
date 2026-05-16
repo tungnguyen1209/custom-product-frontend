@@ -38,7 +38,7 @@ export default async function BlogPostPage({ params }: PageProps) {
   // Markdown textarea get parsed through `renderMarkdown` as a fallback. The
   // detection check looks for a leading block-level HTML tag — Markdown
   // headings start with `#`, so they won't match.
-  const isHtmlContent = /^\s*<(p|h[1-6]|ul|ol|blockquote|pre|figure|img|div|article|section)\b/i.test(
+  const isHtmlContent = /^\s*<(p|h[1-6]|ul|ol|blockquote|pre|figure|img|div|article|section|table|hr|details|aside)\b/i.test(
     post.content,
   );
   const html = isHtmlContent ? post.content : renderMarkdown(post.content);
@@ -108,7 +108,7 @@ export default async function BlogPostPage({ params }: PageProps) {
           )}
 
           <div
-            className="prose prose-slate max-w-none text-gray-800 leading-relaxed [&_a]:text-[#ff6b6b] [&_a]:underline [&_code]:rounded [&_code]:bg-gray-100 [&_code]:px-1 [&_code]:py-0.5 [&_h1]:mb-3 [&_h1]:mt-6 [&_h1]:text-2xl [&_h1]:font-semibold [&_h2]:mb-2 [&_h2]:mt-6 [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:mb-2 [&_h3]:mt-5 [&_h3]:text-lg [&_h3]:font-semibold [&_p]:my-3 [&_ul]:my-3 [&_ol]:my-3 [&_li]:list-disc [&_li]:ml-6 [&_ol_li]:list-decimal [&_pre]:my-4 [&_pre]:overflow-x-auto [&_pre]:rounded [&_pre]:bg-gray-900 [&_pre]:p-3 [&_pre_code]:bg-transparent [&_pre_code]:text-gray-100 [&_blockquote]:my-4 [&_blockquote]:border-l-4 [&_blockquote]:border-gray-300 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-gray-600"
+            className="prose prose-slate max-w-none text-gray-800 leading-relaxed [&_a]:text-[#ff6b6b] [&_a]:underline [&_code]:rounded [&_code]:bg-gray-100 [&_code]:px-1 [&_code]:py-0.5 [&_h1]:mb-3 [&_h1]:mt-6 [&_h1]:text-2xl [&_h1]:font-semibold [&_h2]:mb-2 [&_h2]:mt-6 [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:mb-2 [&_h3]:mt-5 [&_h3]:text-lg [&_h3]:font-semibold [&_p]:my-3 [&_ul]:my-3 [&_ol]:my-3 [&_li]:list-disc [&_li]:ml-6 [&_ol_li]:list-decimal [&_pre]:my-4 [&_pre]:overflow-x-auto [&_pre]:rounded [&_pre]:bg-gray-900 [&_pre]:p-3 [&_pre_code]:bg-transparent [&_pre_code]:text-gray-100 [&_blockquote]:my-4 [&_blockquote]:border-l-4 [&_blockquote]:border-gray-300 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-gray-600 [&_table]:my-5 [&_table]:w-full [&_table]:border-collapse [&_table]:overflow-hidden [&_table]:rounded-lg [&_table]:border [&_table]:border-gray-200 [&_table]:text-sm [&_thead]:bg-gray-50 [&_th]:border-b [&_th]:border-gray-200 [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:font-semibold [&_td]:border-b [&_td]:border-gray-100 [&_td]:px-3 [&_td]:py-2 [&_tbody_tr:last-child_td]:border-b-0"
             dangerouslySetInnerHTML={{ __html: html }}
           />
         </article>

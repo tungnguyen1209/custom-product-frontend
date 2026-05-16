@@ -16,6 +16,19 @@ import {
   uploadAdminImage,
 } from "@/lib/admin";
 import RichTextEditor from "./RichTextEditor";
+import { renderMarkdown } from "@/lib/render-markdown";
+
+// Same detection used by the storefront blog renderer — keep them in sync.
+// TipTap only understands HTML, so any post still authored in Markdown must
+// be converted before it lands in the editor (otherwise TipTap treats the
+// whole `# Heading\n\n…` blob as one plain-text paragraph and the first
+// save permanently flattens the formatting).
+const HTML_CONTENT_RE =
+  /^\s*<(p|h[1-6]|ul|ol|blockquote|pre|figure|img|div|article|section|table|hr|details|aside)\b/i;
+function ensureHtml(content: string): string {
+  if (!content) return "";
+  return HTML_CONTENT_RE.test(content) ? content : renderMarkdown(content);
+}
 
 interface PostFormProps {
   /** Existing post when editing; `null` for create mode. */
@@ -29,7 +42,7 @@ export default function PostForm({ initial }: PostFormProps) {
   const [title, setTitle] = useState(initial?.title ?? "");
   const [slug, setSlug] = useState(initial?.slug ?? "");
   const [excerpt, setExcerpt] = useState(initial?.excerpt ?? "");
-  const [content, setContent] = useState(initial?.content ?? "");
+  const [content, setContent] = useState(() => ensureHtml(initial?.content ?? ""));
   const [coverImage, setCoverImage] = useState(initial?.coverImage ?? "");
   const [status, setStatus] = useState<PostStatus>(initial?.status ?? "draft");
   const [tagIds, setTagIds] = useState<number[]>(
