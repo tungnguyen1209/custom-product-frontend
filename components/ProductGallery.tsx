@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { ChevronLeft, ChevronRight, ZoomIn } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
 
 const fallbackImages = [
   { id: 1, alt: "Front view", bg: "from-purple-100 to-pink-100", emoji: "🎓", label: "Front View" },
@@ -40,9 +40,20 @@ export default function ProductGallery({
       }))
     : fallbackImages;
   const [activeIndex, setActiveIndex] = useState(0);
-  const [zoomed, setZoomed] = useState(false);
   const dragStartX = useRef<number | null>(null);
   const isDragging = useRef(false);
+
+  // Hover-zoom state for the active gallery image. We don't store the
+  // mouse position in React state — that would trigger a re-render on
+  // every mousemove. Instead we write the translation directly onto the
+  // image element via a ref + CSS vars. `hoverZoomActive` only toggles
+  // visibility of the zoomed state.
+  const [hoverZoomActive, setHoverZoomActive] = useState(false);
+  const activeImgRef = useRef<HTMLImageElement | null>(null);
+
+  // Click-to-open lightbox modal with full-screen slider.
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   const prev = () => {
     setShowCanvas(false);
@@ -52,6 +63,35 @@ export default function ProductGallery({
     setShowCanvas(false);
     setActiveIndex((i) => (i === productImages.length - 1 ? 0 : i + 1));
   };
+
+  const openLightbox = (idx: number) => {
+    setLightboxIndex(idx);
+    setLightboxOpen(true);
+  };
+  const closeLightbox = () => setLightboxOpen(false);
+  const lightboxPrev = () =>
+    setLightboxIndex((i) => (i === 0 ? productImages.length - 1 : i - 1));
+  const lightboxNext = () =>
+    setLightboxIndex((i) => (i === productImages.length - 1 ? 0 : i + 1));
+
+  // Keyboard nav when lightbox is open: ESC closes, ←/→ navigate.
+  useEffect(() => {
+    if (!lightboxOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeLightbox();
+      else if (e.key === "ArrowLeft") lightboxPrev();
+      else if (e.key === "ArrowRight") lightboxNext();
+    };
+    window.addEventListener("keydown", onKey);
+    // Lock body scroll while the lightbox is open so wheel/touch doesn't
+    // bleed through to the page underneath.
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [lightboxOpen]);
 
   /* Touch Events for Mobile */
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -78,6 +118,7 @@ export default function ProductGallery({
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging.current) return;
+    void e;
     // We could add visual offset here if needed
   };
 
@@ -97,6 +138,18 @@ export default function ProductGallery({
   const handleMouseLeave = () => {
     isDragging.current = false;
     dragStartX.current = null;
+  };
+
+  // Hover-zoom: translate the image so the point under the cursor stays
+  // anchored under the cursor as the image scales up. We mutate
+  // `transform-origin` directly (no React state) so mousemove stays cheap.
+  const handleZoomMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = activeImgRef.current;
+    if (!target) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    target.style.transformOrigin = `${x}% ${y}%`;
   };
 
   return (
@@ -150,7 +203,7 @@ export default function ProductGallery({
 
         {/* Slider View */}
         <div
-          className={`absolute inset-0 group cursor-grab active:cursor-grabbing ${
+          className={`absolute inset-0 group ${
             !showCanvas ? "block" : "hidden"
           }`}
           onTouchStart={handleTouchStart}
@@ -164,33 +217,64 @@ export default function ProductGallery({
             className="flex w-full h-full transition-transform duration-500 ease-out"
             style={{ transform: `translateX(-${activeIndex * 100}%)` }}
           >
-            {productImages.map((img, i) => (
-              <div
-                key={img.id}
-                className={`w-full h-full flex-shrink-0 ${img.url ? "bg-white" : `bg-gradient-to-br ${img.bg}`} flex items-center justify-center cursor-zoom-in`}
-                onClick={() => setZoomed(!zoomed)}
-              >
-                {img.url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={img.url}
-                    alt={img.alt}
-                    className="w-full h-full object-contain"
-                    loading={i === 0 ? "eager" : "lazy"}
-                    decoding="async"
-                    fetchPriority={i === 0 ? "high" : "auto"}
-                  />
-                ) : (
-                  <div className="text-center">
-                    <div className="text-8xl mb-4">{img.emoji}</div>
-                    <p className="text-gray-500 text-sm font-medium">{img.label}</p>
-                    <p className="text-gray-400 text-xs mt-1 max-w-[180px] mx-auto">
-                      {img.alt}
-                    </p>
-                  </div>
-                )}
-              </div>
-            ))}
+            {productImages.map((img, i) => {
+              const isActive = i === activeIndex;
+              return (
+                <div
+                  key={img.id}
+                  className={`relative w-full h-full flex-shrink-0 overflow-hidden ${img.url ? "bg-white" : `bg-gradient-to-br ${img.bg}`} flex items-center justify-center ${img.url ? "cursor-zoom-in" : ""}`}
+                  // Hover-zoom only when this slide is the active one — we
+                  // don't want the off-screen slides reacting to mouse
+                  // movement during a swipe.
+                  onMouseEnter={() => isActive && img.url && setHoverZoomActive(true)}
+                  onMouseLeave={() => {
+                    if (isActive && activeImgRef.current) {
+                      activeImgRef.current.style.transformOrigin = "center center";
+                    }
+                    setHoverZoomActive(false);
+                  }}
+                  onMouseMove={(e) => isActive && img.url && handleZoomMove(e)}
+                  onClick={(e) => {
+                    if (!img.url) return;
+                    e.stopPropagation();
+                    // Don't open the lightbox if the user was dragging.
+                    if (
+                      dragStartX.current !== null &&
+                      Math.abs(e.clientX - dragStartX.current) > 5
+                    ) {
+                      return;
+                    }
+                    openLightbox(i);
+                  }}
+                >
+                  {img.url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      ref={isActive ? activeImgRef : undefined}
+                      src={img.url}
+                      alt={img.alt}
+                      className="w-full h-full object-contain transition-transform duration-200 ease-out"
+                      style={{
+                        transform:
+                          isActive && hoverZoomActive ? "scale(2)" : "scale(1)",
+                      }}
+                      loading={i === 0 ? "eager" : "lazy"}
+                      decoding="async"
+                      fetchPriority={i === 0 ? "high" : "auto"}
+                      draggable={false}
+                    />
+                  ) : (
+                    <div className="text-center">
+                      <div className="text-8xl mb-4">{img.emoji}</div>
+                      <p className="text-gray-500 text-sm font-medium">{img.label}</p>
+                      <p className="text-gray-400 text-xs mt-1 max-w-[180px] mx-auto">
+                        {img.alt}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
           {/* Navigation arrows */}
@@ -199,7 +283,7 @@ export default function ProductGallery({
               e.stopPropagation();
               prev();
             }}
-            className="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 shadow-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
+            className="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 shadow-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white z-10"
           >
             <ChevronLeft className="w-5 h-5 text-gray-700" />
           </button>
@@ -208,23 +292,119 @@ export default function ProductGallery({
               e.stopPropagation();
               next();
             }}
-            className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 shadow-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 shadow-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white z-10"
           >
             <ChevronRight className="w-5 h-5 text-gray-700" />
           </button>
 
           {/* Counter */}
-          <div className="absolute bottom-3 right-3 bg-black/40 text-white text-xs px-2 py-1 rounded-full">
+          <div className="absolute bottom-3 right-3 bg-black/40 text-white text-xs px-2 py-1 rounded-full z-10">
             {activeIndex + 1} / {productImages.length}
-          </div>
-
-          {/* Zoom icon */}
-          <div className="absolute top-3 right-3 bg-white/80 rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-            <ZoomIn className="w-4 h-4 text-gray-600" />
           </div>
         </div>
       </div>
 
+      {/* Lightbox modal — full-screen slider triggered by click on the
+          main image. Built inline (no extra dep) since we already have
+          carousel navigation logic. */}
+      {lightboxOpen && (
+        <div
+          className="fixed inset-0 z-[60] bg-black/85 backdrop-blur-sm flex items-center justify-center"
+          onClick={closeLightbox}
+        >
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              closeLightbox();
+            }}
+            aria-label="Close gallery"
+            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              lightboxPrev();
+            }}
+            aria-label="Previous image"
+            className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
+          >
+            <ChevronLeft className="w-6 h-6" />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              lightboxNext();
+            }}
+            aria-label="Next image"
+            className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
+          >
+            <ChevronRight className="w-6 h-6" />
+          </button>
+
+          {/* Main image — click on it shouldn't close the modal */}
+          <div
+            className="relative max-w-[90vw] max-h-[85vh] flex items-center justify-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {productImages[lightboxIndex]?.url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={productImages[lightboxIndex].url}
+                alt={productImages[lightboxIndex].alt}
+                className="max-w-full max-h-[85vh] object-contain rounded-lg"
+                draggable={false}
+              />
+            ) : (
+              <div className="text-9xl">
+                {productImages[lightboxIndex]?.emoji}
+              </div>
+            )}
+          </div>
+
+          {/* Thumbnail rail at bottom */}
+          <div
+            className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 px-4 py-2 rounded-2xl bg-white/10 max-w-[90vw] overflow-x-auto scrollbar-hide"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {productImages.map((img, i) => (
+              <button
+                key={img.id}
+                onClick={() => setLightboxIndex(i)}
+                aria-label={`Show image ${i + 1}`}
+                className={`flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden transition-all ${
+                  i === lightboxIndex
+                    ? "ring-2 ring-white ring-offset-2 ring-offset-black/85"
+                    : "opacity-50 hover:opacity-100"
+                }`}
+              >
+                {img.url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={img.url}
+                    alt={img.alt}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div
+                    className={`w-full h-full bg-gradient-to-br ${img.bg} flex items-center justify-center`}
+                  >
+                    <span className="text-xl">{img.emoji}</span>
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+
+          {/* Counter */}
+          <div className="absolute top-4 left-4 text-white/90 text-sm font-medium px-3 py-1 rounded-full bg-white/10">
+            {lightboxIndex + 1} / {productImages.length}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

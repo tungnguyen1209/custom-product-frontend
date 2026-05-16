@@ -21,9 +21,12 @@ export default function StickyPreviewWrapper({ children, className = "", onClick
       const top = container.getBoundingClientRect().top;
       const isDesktop = window.matchMedia("(min-width: 1024px)").matches;
       setIsMobile(!isDesktop);
-      
-      // Sticky starts at top-24 on mobile (96px), lg:top-32 on desktop (128px) based on page.tsx
-      const threshold = isDesktop ? 128 : 96;
+
+      // Thresholds equal the Header's measured height — that's where the
+      // sticky preview pins, so the moment `bbox.top` reaches it the
+      // mobile width-shrink should activate. Mobile = promo `h-9` (36) +
+      // main `h-16` (64) = 100. Desktop = + nav `h-12` (48) = 148.
+      const threshold = isDesktop ? 148 : 100;
       setIsSticky(top <= threshold + 2);
     };
 

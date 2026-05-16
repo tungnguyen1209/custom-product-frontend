@@ -13,6 +13,8 @@ interface Props {
   productId: string;
   productName?: string;
   basePrice?: number;
+  /** First gallery image URL — used as the thumbnail in the sticky CTA. */
+  imageUrl?: string | null;
   customization?: ProductCustomizationData | null;
   customizationError?: boolean;
   /** Sanitized HTML for the Size Guide popup. Pass `null` to hide the link. */

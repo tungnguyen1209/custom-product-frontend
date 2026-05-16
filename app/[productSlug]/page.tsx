@@ -375,31 +375,15 @@ export default async function ProductPage({ params, searchParams }: Props) {
                     sticky inside still has range while the customization
                     column on the right is scrolled. */}
             <div className="contents lg:block lg:col-span-3 lg:self-stretch">
-              {/* Gallery + personalization-progress bar share a single
-                  sticky wrapper so they pin as one unit. The progress
-                  bar's actual content is portaled in from
-                  `CustomizationForm` (which owns the option state); the
-                  empty `#personalization-progress-target` div is the
-                  portal landing zone. Offsets clear the page Header
-                  (promo + logo + nav strips ≈ 150-170px on lg+). */}
-              <div className="sticky top-24 lg:top-44 z-30 flex flex-col gap-1">
-                <ProductGallerySection
-                  gallery={galleryImages}
-                  alt={productName}
-                />
-                {/* Indent the bar so its left edge lines up with the
-                    main image's left edge (not the gallery container's,
-                    which starts at the thumbnail strip).
-                    `ProductGallery` uses `lg:w-20` (5rem) for the strip
-                    + `gap-3` (0.75rem) before the main image — total
-                    5.75rem. On mobile thumbnails are stacked above the
-                    main image, so no left offset is needed and the bar
-                    stays full-width. */}
-                <div
-                  id="personalization-progress-target"
-                  className="lg:pl-[5.75rem]"
-                />
-              </div>
+              {/* Gallery pins itself via `StickyPreviewWrapper`'s
+                  internal `sticky top-24 lg:top-32`. The personalization
+                  progress bar moved back to the right column (top of
+                  the options list) so it sits next to the fields the
+                  customer is actively filling. */}
+              <ProductGallerySection
+                gallery={galleryImages}
+                alt={productName}
+              />
             </div>
 
             {/* Right – Product info & Customization Form (40% on lg+) */}
@@ -468,6 +452,7 @@ export default async function ProductPage({ params, searchParams }: Props) {
                   productId={parsed.id}
                   productName={productName}
                   basePrice={safeBasePrice}
+                  imageUrl={galleryImages[0] ?? null}
                   sizeChartHtml={product.sizeChartHtml ?? null}
                 />
               </DeferMount>

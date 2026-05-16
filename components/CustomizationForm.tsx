@@ -5,6 +5,11 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import WM from "@megaads/wm";
+
+// `createPortal` is kept available for the mobile sticky CTA bar (which
+// portals to document.body so it escapes the right-column transform/
+// stacking context). Removing it here would force a fragile import dance
+// later — leave it imported so the bar can mount without further churn.
 import {
   Minus, Plus, Gift, ShoppingCart, Zap, Heart, Share2,
   CheckCircle, ImagePlus, Upload, X, Check, ChevronDown, Loader2, Eye, Ruler,
@@ -1107,6 +1112,9 @@ interface CustomizationFormProps {
   productId: string;
   productName?: string;
   basePrice?: number;
+  /** First gallery image URL — used as the thumbnail in the mobile
+   *  sticky CTA bar. */
+  imageUrl?: string | null;
   customization?: ProductCustomizationData | null;
   customizationError?: boolean;
   /** Sanitized HTML for the Size Guide popup. When provided, a "Size guide"
@@ -1118,6 +1126,7 @@ export default function CustomizationForm({
   productId,
   productName = `Product ${productId}`,
   basePrice = 0,
+  imageUrl = null,
   customization: customizationProp,
   customizationError: customizationErrorProp,
   sizeChartHtml = null,
@@ -1153,12 +1162,32 @@ export default function CustomizationForm({
   const [fetchError, setFetchError] = useState(false);
   const [errorDetail, setErrorDetail] = useState<string | null>(null);
   const [processingKey, setProcessingKey] = useState<string | null>(null);
-  // Portal landing zone for the personalization-progress bar — the bar is
-  // rendered into the left column (under the gallery, pinned with it) but
-  // its option state lives here. Set once after mount via getElementById.
-  const [progressTarget, setProgressTarget] = useState<HTMLElement | null>(null);
+  // Live price state — initialised from `basePrice` and updated by the
+  // variant-selection useEffect via the `wm-price-update` event. Used by
+  // the mobile sticky CTA bar at the bottom of the screen so it always
+  // reflects the currently-selected variant.
+  const [currentPrice, setCurrentPrice] = useState<number>(basePrice);
+  const [currentComparePrice, setCurrentComparePrice] = useState<number | null>(null);
   useEffect(() => {
-    setProgressTarget(document.getElementById("personalization-progress-target"));
+    setCurrentPrice(basePrice);
+  }, [basePrice]);
+  useEffect(() => {
+    const onPriceUpdate = (e: Event) => {
+      const detail = (e as CustomEvent<{
+        price?: number | null;
+        comparePrice?: number | null;
+      }>).detail;
+      if (detail?.price != null && !Number.isNaN(detail.price)) {
+        setCurrentPrice(detail.price);
+      }
+      setCurrentComparePrice(
+        detail?.comparePrice != null && !Number.isNaN(detail.comparePrice)
+          ? detail.comparePrice
+          : null,
+      );
+    };
+    window.addEventListener("wm-price-update", onPriceUpdate);
+    return () => window.removeEventListener("wm-price-update", onPriceUpdate);
   }, []);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const serviceRef = useRef<any>(null);
@@ -2011,45 +2040,41 @@ export default function CustomizationForm({
         </p>
       </div>
 
-      {/* Personalization progress — rendered via portal into the left
-          column (`#personalization-progress-target`) so it pins together
-          with the gallery as a single sticky unit. The own-sticky
-          positioning is dropped here; the outer wrapper around gallery +
-          target handles pinning. We still own the option state, so the
-          bar updates in lock-step with checkbox/text/swatch changes. */}
-      {requiredTotal > 0 && progressTarget &&
-        createPortal(
-          // Card aligned with the gallery:
-          //  - `rounded-2xl` matches the gallery's main-image radius so
-          //    the two stack like a pair of rounded cards.
-          //  - `-mx-4 lg:mx-0` mirrors the gallery's mobile bleed so the
-          //    strip's left/right edges line up with the gallery image.
-          //  - Full `border` (not just `border-t`) closes the rounded
-          //    shape evenly on all sides.
-          <div className="-mx-4 lg:mx-0 rounded-2xl border border-gray-100 bg-white px-5 py-3.5 shadow-sm">
-            <div className="flex items-center justify-between text-xs font-bold">
-              <span className="text-gray-700">
-                {allDone ? "All set!" : "Personalization progress"}
-              </span>
-              <span
-                className={
-                  allDone ? "text-emerald-600" : "text-gray-600"
-                }
-              >
-                {requiredFilledCount} / {requiredTotal} completed
-              </span>
-            </div>
-            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
-              <div
-                className={`h-full transition-all duration-300 ${
-                  allDone ? "bg-emerald-500" : "bg-[#ff6b6b]"
-                }`}
-                style={{ width: `${progressPct}%` }}
-              />
-            </div>
-          </div>,
-          progressTarget,
-        )}
+      {/* Personalization progress — rendered inline at the top of the
+          options list so it sits next to the fields the customer is
+          actually filling. Sticky offsets equal the Header's measured
+          height so the bar pins flush against its bottom edge:
+            - Mobile: promo `h-9` (36px) + main `h-16` (64px) = 100px.
+            - Desktop: + nav `h-12` (48px) = 148px.
+          The bar's full border/shadow makes any clipping more obvious
+          than the gallery (which hides clipping inside its rounded
+          image corners), hence the explicit pixel values instead of
+          the gallery's `top-24 lg:top-32` shorthand. `z-30` keeps it
+          above option pills but under the Header dropdowns (z-50). */}
+      {requiredTotal > 0 && (
+        <div className="sticky top-[100px] lg:top-[148px] z-30 rounded-2xl border border-gray-100 bg-white px-5 py-3.5 shadow-sm">
+          <div className="flex items-center justify-between text-xs font-bold">
+            <span className="text-gray-700">
+              {allDone ? "All set!" : "Personalization progress"}
+            </span>
+            <span
+              className={
+                allDone ? "text-emerald-600" : "text-gray-600"
+              }
+            >
+              {requiredFilledCount} / {requiredTotal} completed
+            </span>
+          </div>
+          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+            <div
+              className={`h-full transition-all duration-300 ${
+                allDone ? "bg-emerald-500" : "bg-[#ff6b6b]"
+              }`}
+              style={{ width: `${progressPct}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Dynamic options */}
       <div className="flex flex-col gap-6">
@@ -2146,6 +2171,62 @@ export default function CustomizationForm({
         onAddToCart={handleAdd}
         isAdded={added}
       />
+
+      {/* Mobile sticky CTA bar — always-visible price + Add to Cart so
+          the customer never loses the call to action while scrolling
+          through long option lists. Portaled to <body> so it escapes
+          the right-column transform/stacking context (CartContext-level
+          modals also live at <body> root). Mobile-only (`lg:hidden`)
+          since desktop has the full CartStrip in the right column.
+          Hidden until WM finishes init (`ready`) so we never show "$0"
+          before customization options have loaded. */}
+      {ready && typeof window !== "undefined" &&
+        createPortal(
+          <div className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white shadow-[0_-4px_12px_rgba(0,0,0,0.05)] lg:hidden">
+            <div className="flex items-center gap-3 px-4 py-2.5">
+              {imageUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={imageUrl}
+                  alt=""
+                  className="h-12 w-12 flex-shrink-0 rounded-lg border border-gray-100 object-cover"
+                />
+              )}
+              <div className="min-w-0 flex-1">
+                <div className="text-[11px] uppercase tracking-wide text-gray-500">
+                  Your design
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-base font-bold text-gray-900">
+                    ${currentPrice.toFixed(2)}
+                  </span>
+                  {currentComparePrice != null &&
+                    currentComparePrice > currentPrice && (
+                      <span className="text-xs text-gray-400 line-through">
+                        ${currentComparePrice.toFixed(2)}
+                      </span>
+                    )}
+                </div>
+              </div>
+              <button
+                onClick={() => void handleAdd()}
+                disabled={adding}
+                className={`flex-shrink-0 rounded-xl px-4 py-2.5 text-sm font-bold text-white shadow-md shadow-[#ff6b6b]/20 transition-all disabled:cursor-wait disabled:opacity-80 ${
+                  added
+                    ? "bg-emerald-500"
+                    : "bg-[#ff6b6b] hover:bg-[#ee5253]"
+                }`}
+              >
+                {added
+                  ? "Added"
+                  : adding
+                    ? "Adding…"
+                    : "Add to Cart"}
+              </button>
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }
