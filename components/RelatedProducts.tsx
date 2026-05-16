@@ -5,6 +5,7 @@ import { Heart, Loader2 } from "lucide-react";
 import StarRating from "./StarRating";
 import Image from "next/image";
 import { API_BASE_URL, decodeHtmlEntities } from "@/lib/api";
+import { useWishlist } from "@/context/WishlistContext";
 
 interface RelatedProduct {
   id: number;
@@ -25,6 +26,7 @@ interface RelatedProduct {
 export default function RelatedProducts({ productId }: { productId: string | null }) {
   const [products, setProducts] = useState<RelatedProduct[]>([]);
   const [loading, setLoading] = useState(true);
+  const { isInWishlist, toggleItem } = useWishlist();
 
   useEffect(() => {
     if (!productId) return;
@@ -112,10 +114,29 @@ export default function RelatedProducts({ productId }: { productId: string | nul
                   </span>
                 )}
                 <button
-                  onClick={(e) => e.preventDefault()}
-                  className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    void toggleItem(product.id);
+                  }}
+                  aria-label={
+                    isInWishlist(product.id)
+                      ? "Remove from wishlist"
+                      : "Add to wishlist"
+                  }
+                  aria-pressed={isInWishlist(product.id)}
+                  className={`absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center shadow-sm ring-1 ring-black/5 transition-all ${
+                    isInWishlist(product.id)
+                      ? "bg-[#ff6b6b] text-white opacity-100"
+                      : "bg-white/90 text-gray-500 opacity-0 group-hover:opacity-100 hover:text-[#ff6b6b]"
+                  }`}
                 >
-                  <Heart className="w-3.5 h-3.5 text-gray-500" />
+                  <Heart
+                    className={`w-3.5 h-3.5 ${
+                      isInWishlist(product.id) ? "fill-current" : ""
+                    }`}
+                    strokeWidth={2.2}
+                  />
                 </button>
               </div>
               <div className="p-3 flex flex-col flex-1">

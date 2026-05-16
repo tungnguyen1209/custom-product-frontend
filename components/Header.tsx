@@ -9,6 +9,7 @@ import {
   Flame,
   Gift,
   Heart,
+  LifeBuoy,
   LogOut,
   Menu,
   Package,
@@ -242,7 +243,7 @@ export default function Header() {
           {/* Right cluster */}
           <div className="ml-auto flex items-center gap-1 sm:gap-2">
             <Link
-              href="/account"
+              href="/wishlist"
               className="hidden lg:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl hover:bg-gray-50 text-sm font-medium text-gray-700 transition-colors"
             >
               <Heart className="w-5 h-5" />
@@ -302,6 +303,30 @@ export default function Header() {
                       >
                         <Package className="w-4 h-4 text-gray-400" />
                         Orders
+                      </Link>
+                      <Link
+                        href="/wishlist"
+                        role="menuitem"
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                      >
+                        <Heart className="w-4 h-4 text-gray-400" />
+                        Wishlist
+                      </Link>
+                      <Link
+                        href="/track-order"
+                        role="menuitem"
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                      >
+                        <Truck className="w-4 h-4 text-gray-400" />
+                        Track order
+                      </Link>
+                      <Link
+                        href="/help-center"
+                        role="menuitem"
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                      >
+                        <LifeBuoy className="w-4 h-4 text-gray-400" />
+                        Help center
                       </Link>
                       <button
                         type="button"

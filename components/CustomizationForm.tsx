@@ -1672,6 +1672,7 @@ export default function CustomizationForm({
     // result keeps cart variant_id/variant_name consistent with the URL.
     const cv = currentVariantRef.current;
     const activeUnitPrice = cv?.price ?? basePrice;
+    const activeCompare = cv?.comparePrice ?? currentComparePrice ?? null;
     const activeVariantId: string | null = cv?.variantId ?? null;
     const activeVariantName: string | null = cv?.publicTitle ?? null;
 
@@ -1682,6 +1683,10 @@ export default function CustomizationForm({
         variantId: activeVariantId,
         variantName: activeVariantName,
         unitPrice: activeUnitPrice,
+        comparePrice:
+          activeCompare != null && activeCompare > activeUnitPrice
+            ? activeCompare
+            : null,
         customization: selected,
         customizationHash,
         canvas,
@@ -1695,7 +1700,7 @@ export default function CustomizationForm({
     } finally {
       setAdding(false);
     }
-  }, [adding, addItem, openMiniCart, productId, options, productName, basePrice, focusMissing]);
+  }, [adding, addItem, openMiniCart, productId, options, productName, basePrice, currentComparePrice, focusMissing]);
 
   const handlePreviewRequest = useCallback(() => {
     const missing = getMissingRequired(options);

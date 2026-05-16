@@ -146,8 +146,16 @@ export default function MiniCart({ open, onClose }: MiniCartProps) {
                           <Plus className="w-3 h-3" />
                         </button>
                       </div>
-                      <div className="text-sm font-bold text-gray-900">
-                        ${(item.unitPrice * item.quantity).toFixed(2)}
+                      <div className="text-right">
+                        <div className="text-sm font-bold text-gray-900">
+                          ${(item.unitPrice * item.quantity).toFixed(2)}
+                        </div>
+                        {item.comparePrice != null &&
+                          item.comparePrice > item.unitPrice && (
+                            <div className="text-[11px] text-gray-400 line-through leading-none">
+                              ${(item.comparePrice * item.quantity).toFixed(2)}
+                            </div>
+                          )}
                       </div>
                     </div>
                   </div>

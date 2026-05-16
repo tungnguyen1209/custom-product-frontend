@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Star, Eye } from "lucide-react";
+import { Star, Eye, Heart } from "lucide-react";
+import { useWishlist } from "@/context/WishlistContext";
 
 export interface ProductCardData {
   id: number;
@@ -34,6 +35,17 @@ export default function ProductCard({
 }: ProductCardData) {
   const hasDiscount = discountPercent > 0;
   const roundedRating = Math.round(rating);
+  const { isInWishlist, toggleItem } = useWishlist();
+  const saved = isInWishlist(id);
+
+  // The whole card is a Link; the heart sits on top of the image. We
+  // both stopPropagation AND preventDefault — propagation alone leaves
+  // Next.js's <Link> intercepting the click on the parent.
+  const onToggleWishlist = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    void toggleItem(id);
+  };
 
   return (
     <Link
@@ -63,6 +75,24 @@ export default function ProductCard({
             </span>
           )}
         </div>
+
+        {/* Wishlist heart */}
+        <button
+          type="button"
+          onClick={onToggleWishlist}
+          aria-label={saved ? "Remove from wishlist" : "Add to wishlist"}
+          aria-pressed={saved}
+          className={`absolute top-2.5 right-2.5 w-8 h-8 rounded-full flex items-center justify-center shadow-sm ring-1 ring-black/5 transition-all ${
+            saved
+              ? "bg-[#ff6b6b] text-white"
+              : "bg-white/95 text-gray-500 hover:text-[#ff6b6b]"
+          }`}
+        >
+          <Heart
+            className={`w-4 h-4 ${saved ? "fill-current" : ""}`}
+            strokeWidth={2.2}
+          />
+        </button>
 
         {/* Out of stock overlay */}
         {!inStock && (

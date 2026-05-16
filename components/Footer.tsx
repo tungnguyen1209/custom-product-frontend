@@ -6,10 +6,30 @@ import { Globe, Link2, X, Music2, Gift } from "lucide-react";
 import { PublicPostSummary } from "@/lib/posts-public";
 import { API_BASE_URL } from "@/lib/api";
 
-const links = {
-  "Customer Care": ["Help Center", "Shipping Info", "Returns & Exchanges", "Track Order", "Contact Us"],
-  "About Gifthub": ["Brand Story", "Careers", "Press", "Sustainability", "Partners"],
-  "Discover": ["Family Gifts", "Friends Gifts", "Pet Gifts", "Anniversary", "Birthday Gifts"],
+/** Footer link map. `null` href means the page isn't built yet —
+ *  rendered as a non-link so we don't ship dead links in the footer. */
+const links: Record<string, Array<{ label: string; href: string | null }>> = {
+  "Customer Care": [
+    { label: "Help Center", href: "/help-center" },
+    { label: "Track Order", href: "/track-order" },
+    { label: "Track Ticket", href: "/help-center/track" },
+    { label: "Wishlist", href: "/wishlist" },
+    { label: "Returns & Exchanges", href: null },
+  ],
+  "About Gifthub": [
+    { label: "Brand Story", href: null },
+    { label: "Careers", href: null },
+    { label: "Press", href: null },
+    { label: "Sustainability", href: null },
+    { label: "Partners", href: null },
+  ],
+  "Discover": [
+    { label: "Family Gifts", href: "/products?tags=family" },
+    { label: "Friends Gifts", href: "/products?tags=friends" },
+    { label: "Pet Gifts", href: "/products?tags=pet" },
+    { label: "Anniversary", href: "/products?tags=anniversary" },
+    { label: "Birthday Gifts", href: "/products?tags=birthday" },
+  ],
 };
 
 const paymentIcons = ["💳", "🔒", "✅"];
@@ -76,13 +96,19 @@ export default function Footer() {
               </h4>
               <ul className="space-y-3.5">
                 {items.map((item) => (
-                  <li key={item}>
-                    <a
-                      href="#"
-                      className="text-[13px] text-gray-400 hover:text-[#ff6b6b] transition-colors"
-                    >
-                      {item}
-                    </a>
+                  <li key={item.label}>
+                    {item.href ? (
+                      <Link
+                        href={item.href}
+                        className="text-[13px] text-gray-400 hover:text-[#ff6b6b] transition-colors"
+                      >
+                        {item.label}
+                      </Link>
+                    ) : (
+                      <span className="text-[13px] text-gray-500 cursor-default">
+                        {item.label}
+                      </span>
+                    )}
                   </li>
                 ))}
               </ul>

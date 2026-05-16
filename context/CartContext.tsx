@@ -34,6 +34,9 @@ export interface CartItem {
   previewImageUrl?: string | null;
   quantity: number;
   unitPrice: number;
+  /** Strikethrough "was" price for showing discounts. Null when not on
+   *  sale. */
+  comparePrice?: number | null;
 }
 
 export interface Cart {

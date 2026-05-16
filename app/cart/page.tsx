@@ -99,7 +99,15 @@ function CartItem({
             </button>
           </div>
           <div className="text-right">
-            <div className="text-sm font-bold text-gray-900">${(item.unitPrice * item.quantity).toFixed(2)}</div>
+            <div className="text-sm font-bold text-gray-900">
+              ${(item.unitPrice * item.quantity).toFixed(2)}
+            </div>
+            {item.comparePrice != null &&
+              item.comparePrice > item.unitPrice && (
+                <div className="text-xs text-gray-400 line-through leading-none mt-0.5">
+                  ${(item.comparePrice * item.quantity).toFixed(2)}
+                </div>
+              )}
           </div>
         </div>
       </div>
